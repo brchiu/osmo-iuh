@@ -79,7 +79,7 @@ static const struct value_string hnbap_cause_misc_vals[] = {
 
 char *hnbap_cause_str(Cause_t *cause)
 {
-	static char buf[32];
+	static char buf[100];
 
 	switch (cause->present) {
 	case Cause_PR_radioNetwork:
@@ -102,6 +102,10 @@ char *hnbap_cause_str(Cause_t *cause)
 			get_value_string(hnbap_cause_misc_vals,
 					cause->choice.misc));
 		break;
+	case Cause_PR_NOTHING:
+	default:
+		memset(buf, 0, sizeof(buf));
+		break;
 	}
 	return buf;
 }
@@ -115,7 +119,7 @@ static struct msgb *hnbap_msgb_alloc(void)
 	return msgb_alloc(1024, "HNBAP Tx");
 }
 
-static struct msgb *_hnbap_gen_msg(HNBAP_PDU_t *pdu)
+struct msgb *_hnbap_gen_msg(HNBAP_PDU_t *pdu)
 {
 	struct msgb *msg = hnbap_msgb_alloc();
 	asn_enc_rval_t rval;
@@ -123,7 +127,7 @@ static struct msgb *_hnbap_gen_msg(HNBAP_PDU_t *pdu)
 	if (!msg)
 		return NULL;
 
-	rval = aper_encode_to_buffer(&asn_DEF_HNBAP_PDU, pdu,
+	rval = aper_encode_to_buffer(&asn_DEF_HNBAP_PDU, NULL, pdu,
 				       msg->data, msgb_tailroom(msg));
 	if (rval.encoded < 0) {
 		LOGP(DHNBAP, LOGL_ERROR, "Error encoding type: %s\n",
@@ -134,116 +138,4 @@ static struct msgb *_hnbap_gen_msg(HNBAP_PDU_t *pdu)
 	msgb_put(msg, rval.encoded/8);
 
 	return msg;
-}
-
-struct msgb *hnbap_generate_initiating_message(
-					 e_ProcedureCode procedureCode,
-					 Criticality_t criticality,
-					 asn_TYPE_descriptor_t * td, void *sptr)
-{
-	struct msgb *msg;
-	HNBAP_PDU_t pdu;
-	int rc;
-
-	memset(&pdu, 0, sizeof(HNBAP_PDU_t));
-
-	pdu.present = HNBAP_PDU_PR_initiatingMessage;
-	pdu.choice.initiatingMessage.procedureCode = procedureCode;
-	pdu.choice.initiatingMessage.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.initiatingMessage.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _hnbap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
-
-	return msg;
-}
-
-struct msgb *hnbap_generate_successful_outcome(
-					   e_ProcedureCode procedureCode,
-					   Criticality_t criticality,
-					   asn_TYPE_descriptor_t * td,
-					   void *sptr)
-{
-	struct msgb *msg;
-	HNBAP_PDU_t pdu;
-	int rc;
-
-	memset(&pdu, 0, sizeof(HNBAP_PDU_t));
-
-	pdu.present = HNBAP_PDU_PR_successfulOutcome;
-	pdu.choice.successfulOutcome.procedureCode = procedureCode;
-	pdu.choice.successfulOutcome.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.successfulOutcome.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _hnbap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
-
-	return msg;
-}
-
-struct msgb *hnbap_generate_unsuccessful_outcome(
-					   e_ProcedureCode procedureCode,
-					   Criticality_t criticality,
-					   asn_TYPE_descriptor_t * td,
-					   void *sptr)
-{
-	struct msgb *msg;
-	HNBAP_PDU_t pdu;
-	int rc;
-
-	memset(&pdu, 0, sizeof(HNBAP_PDU_t));
-
-	pdu.present = HNBAP_PDU_PR_unsuccessfulOutcome;
-	pdu.choice.unsuccessfulOutcome.procedureCode = procedureCode;
-	pdu.choice.unsuccessfulOutcome.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.unsuccessfulOutcome.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _hnbap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
-
-	return msg;
-}
-
-IE_t *hnbap_new_ie(ProtocolIE_ID_t id,
-		   Criticality_t criticality,
-		   asn_TYPE_descriptor_t * type, void *sptr)
-{
-
-	IE_t *buff;
-	int rc;
-
-	if ((buff = CALLOC(1, sizeof(IE_t))) == NULL) {
-		// Possible error on malloc
-		return NULL;
-	}
-
-	buff->id = id;
-	buff->criticality = criticality;
-
-	rc = ANY_fromType_aper(&buff->value, type, sptr);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		FREEMEM(buff);
-		return NULL;
-	}
-
-	if (asn1_xer_print)
-		if (xer_fprint(stdout, &asn_DEF_IE, buff) < 0) {
-			FREEMEM(buff);
-			return NULL;
-		}
-
-	return buff;
 }

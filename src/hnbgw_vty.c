@@ -116,11 +116,11 @@ DEFUN(show_cnlink, show_cnlink_cmd, "show cnlink",
 {
 	struct osmo_ss7_route *rt;
 	struct osmo_ss7_instance *ss7 = osmo_sccp_get_ss7(g_hnb_gw->sccp.client);
-	int i;
+
 #define GUARD(STR) \
 	STR ? STR : "", \
 	STR ? ":" : ""
-	
+
 	vty_out(vty, "IuCS: %s <->",
 		osmo_sccp_user_name(g_hnb_gw->sccp.cnlink->sccp_user));
 	vty_out(vty, " %s%s%s%s",

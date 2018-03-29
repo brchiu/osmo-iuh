@@ -35,7 +35,7 @@
 #include <osmocom/iuh/hnbgw.h>
 #include <osmocom/iuh/hnbgw_ranap.h>
 #include <osmocom/rua/rua_common.h>
-#include <osmocom/rua/rua_ies_defs.h>
+//#include <osmocom/rua/rua_ies_defs.h>
 #include <osmocom/iuh/context_map.h>
 #include <osmocom/hnbap/CN-DomainIndicator.h>
 
@@ -64,27 +64,30 @@ static int hnbgw_rua_tx(struct hnb_context *ctx, struct msgb *msg)
 
 int rua_tx_udt(struct hnb_context *hnb, const uint8_t *data, unsigned int len)
 {
-	RUA_ConnectionlessTransfer_t out;
-	RUA_ConnectionlessTransferIEs_t ies;
+
+	RUA_RUA_PDU_t pdu;
+	RUA_ConnectionlessTransfer_t *out;
+	RUA_ConnectionlessTransferIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	ies.ranaP_Message.buf = (uint8_t *) data;
-	ies.ranaP_Message.size = len;
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* FIXME: msgb_free(msg)? ownership not yet clear */
+	pdu.present = RUA_RUA_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RUA_ProcedureCode_id_ConnectionlessTransfer;
+	pdu.choice.initiatingMessage.criticality = RUA_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RUA_InitiatingMessage__value_PR_ConnectionlessTransfer;
+	out = &pdu.choice.initiatingMessage.value.choice.ConnectionlessTransfer;
 
-	memset(&out, 0, sizeof(out));
-	rc = rua_encode_connectionlesstransferies(&out, &ies);
-	if (rc < 0)
-		return rc;
+	ie = (RUA_ConnectionlessTransferIEs_t *)calloc(1, sizeof(RUA_ConnectionlessTransferIEs_t));
+	ie->id = RUA_ProtocolIE_ID_id_RANAP_Message;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_ConnectionlessTransferIEs__value_PR_RANAP_Message;
+	OCTET_STRING_fromBuf(&ie->value.choice.RANAP_Message,  (const char *)data, len);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	msg = rua_generate_initiating_message(RUA_ProcedureCode_id_ConnectionlessTransfer,
-					      RUA_Criticality_reject,
-					      &asn_DEF_RUA_ConnectionlessTransfer,
-					      &out);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_ConnectionlessTransfer, &out);
+	msg = _rua_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_RUA_PDU, &pdu);
 
 	DEBUGP(DRUA, "transmitting RUA payload of %u bytes\n", msgb_length(msg));
 
@@ -94,33 +97,44 @@ int rua_tx_udt(struct hnb_context *hnb, const uint8_t *data, unsigned int len)
 int rua_tx_dt(struct hnb_context *hnb, int is_ps, uint32_t context_id,
 	      const uint8_t *data, unsigned int len)
 {
-	RUA_DirectTransfer_t out;
-	RUA_DirectTransferIEs_t ies;
-	uint32_t ctxidbuf;
+	RUA_RUA_PDU_t pdu;
+	RUA_DirectTransfer_t *out;
+	RUA_DirectTransferIEs_t *ie;
 	struct msgb *msg;
-	int rc;
+	uint32_t ctxidbuf;
 
-	memset(&ies, 0, sizeof(ies));
-	if (is_ps)
-		ies.cN_DomainIndicator = RUA_CN_DomainIndicator_ps_domain;
-	else
-		ies.cN_DomainIndicator = RUA_CN_DomainIndicator_cs_domain;
-	asn1_u24_to_bitstring(&ies.context_ID, &ctxidbuf, context_id);
-	ies.ranaP_Message.buf = (uint8_t *) data;
-	ies.ranaP_Message.size = len;
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* FIXME: msgb_free(msg)? ownership not yet clear */
+	pdu.present = RUA_RUA_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RUA_ProcedureCode_id_DirectTransfer;
+	pdu.choice.initiatingMessage.criticality = RUA_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RUA_InitiatingMessage__value_PR_DirectTransfer;
+	out = &pdu.choice.initiatingMessage.value.choice.DirectTransfer;
 
-	memset(&out, 0, sizeof(out));
-	rc = rua_encode_directtransferies(&out, &ies);
-	if (rc < 0)
-		return rc;
+	ie = (RUA_DirectTransferIEs_t *)calloc(1, sizeof(RUA_DirectTransferIEs_t));
+	ie->id = RUA_ProtocolIE_ID_id_CN_DomainIndicator;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DirectTransferIEs__value_PR_CN_DomainIndicator;
+	ie->value.choice.CN_DomainIndicator = is_ps ? RUA_CN_DomainIndicator_ps_domain : RUA_CN_DomainIndicator_cs_domain;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	msg = rua_generate_initiating_message(RUA_ProcedureCode_id_DirectTransfer,
-					      RUA_Criticality_reject,
-					      &asn_DEF_RUA_DirectTransfer,
-					      &out);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_DirectTransfer, &out);
+	ie = (RUA_DirectTransferIEs_t *)calloc(1, sizeof(RUA_DirectTransferIEs_t));
+	ie->id = RUA_ProtocolIE_ID_id_Context_ID;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DirectTransferIEs__value_PR_Context_ID;
+	asn1_u24_to_bitstring(&ie->value.choice.Context_ID, &ctxidbuf, context_id);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	ie = (RUA_DirectTransferIEs_t *)calloc(1, sizeof(RUA_DirectTransferIEs_t));
+	ie->id = RUA_ProtocolIE_ID_id_RANAP_Message;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DirectTransferIEs__value_PR_RANAP_Message;
+	OCTET_STRING_fromBuf(&ie->value.choice.RANAP_Message, (const char *)data, len);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	msg = _rua_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_RUA_PDU, &pdu);
 
 	DEBUGP(DRUA, "transmitting RUA (cn=%s) payload of %u bytes\n",
 		is_ps ? "ps" : "cs", msgb_length(msg));
@@ -131,46 +145,60 @@ int rua_tx_dt(struct hnb_context *hnb, int is_ps, uint32_t context_id,
 int rua_tx_disc(struct hnb_context *hnb, int is_ps, uint32_t context_id,
 	        const RUA_Cause_t *cause, const uint8_t *data, unsigned int len)
 {
-	RUA_Disconnect_t out;
-	RUA_DisconnectIEs_t ies;
+	RUA_RUA_PDU_t pdu;
+	RUA_Disconnect_t *out;
+	RUA_DisconnectIEs_t *ie;
 	struct msgb *msg;
 	uint32_t ctxidbuf;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	if (is_ps)
-		ies.cN_DomainIndicator = RUA_CN_DomainIndicator_ps_domain;
-	else
-		ies.cN_DomainIndicator = RUA_CN_DomainIndicator_cs_domain;
-	asn1_u24_to_bitstring(&ies.context_ID, &ctxidbuf, context_id);
-	memcpy(&ies.cause, cause, sizeof(ies.cause));
-	if (data && len) {
-		ies.presenceMask |= DISCONNECTIES_RUA_RANAP_MESSAGE_PRESENT;
-		ies.ranaP_Message.buf = (uint8_t *) data;
-		ies.ranaP_Message.size = len;
+	memset(&pdu, 0, sizeof(pdu));
+
+	pdu.present = RUA_RUA_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RUA_ProcedureCode_id_Connect;
+	pdu.choice.initiatingMessage.criticality = RUA_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RUA_InitiatingMessage__value_PR_Disconnect;
+	out = &pdu.choice.initiatingMessage.value.choice.Disconnect;
+
+	ie = (RUA_DisconnectIEs_t *)calloc(sizeof(RUA_DisconnectIEs_t), 1);
+	ie->id = RUA_ProtocolIE_ID_id_CN_DomainIndicator;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DisconnectIEs__value_PR_CN_DomainIndicator;
+	ie->value.choice.CN_DomainIndicator = is_ps ? RUA_CN_DomainIndicator_ps_domain : RUA_CN_DomainIndicator_cs_domain;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	ie = (RUA_DisconnectIEs_t *)calloc(sizeof(RUA_DisconnectIEs_t), 1);
+	ie->id = RUA_ProtocolIE_ID_id_Context_ID;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DisconnectIEs__value_PR_Context_ID;
+	asn1_u24_to_bitstring(&ie->value.choice.Context_ID, &ctxidbuf, context_id);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	ie = (RUA_DisconnectIEs_t *)calloc(sizeof(RUA_DisconnectIEs_t), 1);
+	ie->id = RUA_ProtocolIE_ID_id_Cause;
+	ie->criticality = RUA_Criticality_reject;
+	ie->value.present = RUA_DisconnectIEs__value_PR_Cause;
+	ie->value.choice.Cause.present = RUA_Cause_PR_radioNetwork;
+	ie->value.choice.Cause.choice.radioNetwork = RUA_CauseRadioNetwork_normal;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	if (data && (len > 9)) {
+		ie = (RUA_DisconnectIEs_t *)calloc(sizeof(RUA_DisconnectIEs_t), 1);
+		ie->id = RUA_ProtocolIE_ID_id_RANAP_Message;
+		ie->criticality = RUA_Criticality_reject;
+		ie->value.present = RUA_DisconnectIEs__value_PR_RANAP_Message;
+		OCTET_STRING_fromBuf(&ie->value.choice.RANAP_Message, (const char *)data, len);
+		ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 	}
 
-	/* FIXME: msgb_free(msg)? ownership not yet clear */
+	msg = _rua_gen_msg(&pdu);
 
-	memset(&out, 0, sizeof(out));
-	rc = rua_encode_disconnecties(&out, &ies);
-	if (rc < 0)
-		return rc;
-
-	msg = rua_generate_initiating_message(RUA_ProcedureCode_id_Disconnect,
-					      RUA_Criticality_reject,
-					      &asn_DEF_RUA_Disconnect,
-					      &out);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_Disconnect, &out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RUA_RUA_PDU, &pdu);
 
 	DEBUGP(DRUA, "transmitting RUA (cn=%s) payload of %u bytes\n",
 		is_ps ? "ps" : "cs", msgb_length(msg));
 
-
 	return hnbgw_rua_tx(hnb, msg);
 }
-
-
 
 /* forward a RUA message to the SCCP User API to SCCP */
 static int rua_to_scu(struct hnb_context *hnb,
@@ -339,102 +367,92 @@ static uint32_t rua_to_scu_cause(RUA_Cause_t *in)
 
 }
 
-static int rua_rx_init_connect(struct msgb *msg, ANY_t *in)
+static int rua_rx_init_connect(struct msgb *msg, RUA_Connect_t *in)
 {
-	RUA_ConnectIEs_t ies;
+	RUA_ConnectIEs_t *ie, *ie_cause, *ie_ranap_msg;
 	struct hnb_context *hnb = msg->dst;
 	uint32_t context_id;
-	int rc;
 
-	rc = rua_decode_connecties(&ies, in);
-	if (rc < 0)
-		return rc;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ConnectIEs_t, ie, in, RUA_ProtocolIE_ID_id_Context_ID, true);
 
-	context_id = asn1bitstr_to_u24(&ies.context_ID);
+	context_id = asn1bitstr_to_u24(&ie->value.choice.Context_ID);
+
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ConnectIEs_t, ie, in, RUA_ProtocolIE_ID_id_CN_DomainIndicator, true);
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ConnectIEs_t, ie_cause, in, RUA_ProtocolIE_ID_id_Establishment_Cause, true);
 
 	DEBUGP(DRUA, "RUA %s Connect.req(ctx=0x%x, %s)\n",
-	       cn_domain_indicator_to_str(ies.cN_DomainIndicator),
+	       cn_domain_indicator_to_str(ie->value.choice.CN_DomainIndicator),
 	       context_id,
-	       ies.establishment_Cause == RUA_Establishment_Cause_emergency_call
+	       ie_cause->value.choice.Establishment_Cause == RUA_Establishment_Cause_emergency_call
 		? "emergency" : "normal");
 
-	rc = rua_to_scu(hnb, ies.cN_DomainIndicator, OSMO_SCU_PRIM_N_CONNECT,
-			context_id, 0, ies.ranaP_Message.buf,
-			ies.ranaP_Message.size);
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ConnectIEs_t, ie_ranap_msg, in, RUA_ProtocolIE_ID_id_RANAP_Message, true);
 
-	rua_free_connecties(&ies);
-
-	return rc;
+	return rua_to_scu(hnb, ie->value.choice.CN_DomainIndicator, OSMO_SCU_PRIM_N_CONNECT,
+			context_id, 0, ie_ranap_msg->value.choice.RANAP_Message.buf,
+			ie_ranap_msg->value.choice.RANAP_Message.size);
 }
 
-static int rua_rx_init_disconnect(struct msgb *msg, ANY_t *in)
+static int rua_rx_init_disconnect(struct msgb *msg, RUA_Disconnect_t *in)
 {
-	RUA_DisconnectIEs_t ies;
+	RUA_DisconnectIEs_t *ie, *ie_ranap_msg;
 	struct hnb_context *hnb = msg->dst;
 	uint32_t context_id;
 	uint32_t scu_cause;
 	uint8_t *ranap_data = NULL;
 	unsigned int ranap_len = 0;
-	int rc;
 
-	rc = rua_decode_disconnecties(&ies, in);
-	if (rc < 0)
-		return rc;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DisconnectIEs_t, ie, in, RUA_ProtocolIE_ID_id_Context_ID, true);
 
-	context_id = asn1bitstr_to_u24(&ies.context_ID);
-	scu_cause = rua_to_scu_cause(&ies.cause);
+	context_id = asn1bitstr_to_u24(&ie->value.choice.Context_ID);
+
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DisconnectIEs_t, ie, in, RUA_ProtocolIE_ID_id_Cause, true);
+
+	scu_cause = rua_to_scu_cause(&ie->value.choice.Cause);
 
 	DEBUGP(DRUA, "RUA Disconnect.req(ctx=0x%x,cause=%s)\n", context_id,
-		rua_cause_str(&ies.cause));
+		rua_cause_str(&ie->value.choice.Cause));
 
-	if (ies.presenceMask & DISCONNECTIES_RUA_RANAP_MESSAGE_PRESENT) {
-		ranap_data = ies.ranaP_Message.buf;
-		ranap_len = ies.ranaP_Message.size;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DisconnectIEs_t, ie_ranap_msg, in, RUA_ProtocolIE_ID_id_RANAP_Message, false);
+	if (ie_ranap_msg) {
+		ranap_data = ie_ranap_msg->value.choice.RANAP_Message.buf;
+		ranap_len = ie_ranap_msg->value.choice.RANAP_Message.size;
 	}
 
-	rc = rua_to_scu(hnb, ies.cN_DomainIndicator,
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DisconnectIEs_t, ie, in, RUA_ProtocolIE_ID_id_CN_DomainIndicator, true);
+
+	return rua_to_scu(hnb, ie->value.choice.CN_DomainIndicator,
 			OSMO_SCU_PRIM_N_DISCONNECT,
 			context_id, scu_cause, ranap_data, ranap_len);
-
-	rua_free_disconnecties(&ies);
-
-	return rc;
 }
 
-static int rua_rx_init_dt(struct msgb *msg, ANY_t *in)
+static int rua_rx_init_dt(struct msgb *msg, RUA_DirectTransfer_t *in)
 {
-	RUA_DirectTransferIEs_t ies;
+	RUA_DirectTransferIEs_t *ie, *ie_ranap_msg;
 	struct hnb_context *hnb = msg->dst;
 	uint32_t context_id;
-	int rc;
 
-	rc = rua_decode_directtransferies(&ies, in);
-	if (rc < 0)
-		return rc;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DirectTransferIEs_t, ie, in, RUA_ProtocolIE_ID_id_Context_ID, true);
 
-	context_id = asn1bitstr_to_u24(&ies.context_ID);
+	context_id = asn1bitstr_to_u24(&ie->value.choice.Context_ID);
 
 	DEBUGP(DRUA, "RUA Data.req(ctx=0x%x)\n", context_id);
 
-	rc = rua_to_scu(hnb,
-			ies.cN_DomainIndicator,
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DirectTransferIEs_t, ie, in, RUA_ProtocolIE_ID_id_CN_DomainIndicator, true);
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_DirectTransferIEs_t, ie_ranap_msg, in, RUA_ProtocolIE_ID_id_RANAP_Message, true);
+
+	return rua_to_scu(hnb,
+			ie->value.choice.CN_DomainIndicator,
 			OSMO_SCU_PRIM_N_DATA,
-			context_id, 0, ies.ranaP_Message.buf,
-			ies.ranaP_Message.size);
-
-	rua_free_directtransferies(&ies);
-
-	return rc;
+			context_id, 0, ie_ranap_msg->value.choice.RANAP_Message.buf,
+			ie_ranap_msg->value.choice.RANAP_Message.size);
 }
 
-static int rua_rx_init_udt(struct msgb *msg, ANY_t *in)
+static int rua_rx_init_udt(struct msgb *msg, RUA_ConnectionlessTransfer_t *in)
 {
-	RUA_ConnectionlessTransferIEs_t ies;
-	int rc;
+	RUA_ConnectionlessTransferIEs_t *ie;
 
-	rc = rua_decode_connectionlesstransferies(&ies, in);
-	if (rc < 0)
-		return rc;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ConnectionlessTransferIEs_t, ie, in, RUA_ProtocolIE_ID_id_RANAP_Message, true);
 
 	DEBUGP(DRUA, "RUA UData.req()\n");
 
@@ -445,27 +463,20 @@ static int rua_rx_init_udt(struct msgb *msg, ANY_t *in)
 	 * Information Transfer and Uplink Information Trnansfer that we
 	 * can ignore.  In either case, it is RANAP that we need to
 	 * decode... */
-	rc = hnbgw_ranap_rx(msg, ies.ranaP_Message.buf, ies.ranaP_Message.size);
-	rua_free_connectionlesstransferies(&ies);
-
-	return rc;
+	return hnbgw_ranap_rx(msg, ie->value.choice.RANAP_Message.buf, ie->value.choice.RANAP_Message.size);
 }
 
 
-static int rua_rx_init_err_ind(struct msgb *msg, ANY_t *in)
+static int rua_rx_init_err_ind(struct msgb *msg, RUA_ErrorIndication_t *in)
 {
-	RUA_ErrorIndicationIEs_t ies;
-	int rc;
+	RUA_ErrorIndicationIEs_t *ie;
 
-	rc = rua_decode_errorindicationies(&ies, in);
-	if (rc < 0)
-		return rc;
+	RUA_FIND_PROTOCOLIE_BY_ID(RUA_ErrorIndicationIEs_t, ie, in, RUA_ProtocolIE_ID_id_Cause, true);
 
 	LOGP(DRUA, LOGL_ERROR, "RUA UData.ErrorInd(%s)\n",
-		rua_cause_str(&ies.cause));
+		rua_cause_str(&ie->value.choice.Cause));
 
-	rua_free_errorindicationies(&ies);
-	return rc;
+	return 0;
 }
 
 static int rua_rx_initiating_msg(struct msgb *msg, RUA_InitiatingMessage_t *imsg)
@@ -474,19 +485,19 @@ static int rua_rx_initiating_msg(struct msgb *msg, RUA_InitiatingMessage_t *imsg
 
 	switch (imsg->procedureCode) {
 	case RUA_ProcedureCode_id_Connect:
-		rc = rua_rx_init_connect(msg, &imsg->value);
+		rc = rua_rx_init_connect(msg, &imsg->value.choice.Connect);
 		break;
 	case RUA_ProcedureCode_id_DirectTransfer:
-		rc = rua_rx_init_dt(msg, &imsg->value);
+		rc = rua_rx_init_dt(msg, &imsg->value.choice.DirectTransfer);
 		break;
 	case RUA_ProcedureCode_id_Disconnect:
-		rc = rua_rx_init_disconnect(msg, &imsg->value);
+		rc = rua_rx_init_disconnect(msg, &imsg->value.choice.Disconnect);
 		break;
 	case RUA_ProcedureCode_id_ConnectionlessTransfer:
-		rc = rua_rx_init_udt(msg, &imsg->value);
+		rc = rua_rx_init_udt(msg, &imsg->value.choice.ConnectionlessTransfer);
 		break;
 	case RUA_ProcedureCode_id_ErrorIndication:
-		rc = rua_rx_init_err_ind(msg, &imsg->value);
+		rc = rua_rx_init_err_ind(msg, &imsg->value.choice.ErrorIndication);
 		break;
 	case RUA_ProcedureCode_id_privateMessage:
 		LOGP(DRUA, LOGL_NOTICE,

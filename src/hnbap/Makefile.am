@@ -1,11 +1,27 @@
 ASN_MODULE_SOURCES=	\
-	Criticality.c	\
-	Presence.c	\
-	PrivateIE-ID.c	\
-	ProcedureCode.c	\
-	ProtocolIE-ID.c	\
-	TriggeringMessage.c	\
-	IE-Extensions.c	\
+	HNBAP-PDU.c	\
+	InitiatingMessage.c	\
+	SuccessfulOutcome.c	\
+	UnsuccessfulOutcome.c	\
+	HNBRegisterRequest.c	\
+	HNBRegisterAccept.c	\
+	HNBRegisterReject.c	\
+	HNBDe-Register.c	\
+	UERegisterRequest.c	\
+	UERegisterAccept.c	\
+	UERegisterReject.c	\
+	UEDe-Register.c	\
+	CSGMembershipUpdate.c	\
+	TNLUpdateRequest.c	\
+	TNLUpdateResponse.c	\
+	TNLUpdateFailure.c	\
+	HNBConfigTransferRequest.c	\
+	HNBConfigTransferResponse.c	\
+	RelocationComplete.c	\
+	ErrorIndication.c	\
+	PrivateMessage.c	\
+	U-RNTIQueryRequest.c	\
+	U-RNTIQueryResponse.c	\
 	Access-stratum-release-indicator.c	\
 	AccessResult.c	\
 	AltitudeAndDirection.c	\
@@ -90,39 +106,45 @@ ASN_MODULE_SOURCES=	\
 	URAIdentity.c	\
 	U-RNTI.c	\
 	UnknownU-RNTIIndication.c	\
-	HNBAP-PDU.c	\
-	InitiatingMessage.c	\
-	SuccessfulOutcome.c	\
-	UnsuccessfulOutcome.c	\
-	HNBRegisterRequest.c	\
-	HNBRegisterAccept.c	\
-	HNBRegisterReject.c	\
-	UERegisterRequest.c	\
-	UERegisterAccept.c	\
-	UERegisterReject.c	\
-	UEDe-Register.c	\
-	HNBDe-Register.c	\
-	ErrorIndication.c	\
-	CSGMembershipUpdate.c	\
-	TNLUpdateRequest.c	\
-	TNLUpdateResponse.c	\
-	TNLUpdateFailure.c	\
-	HNBConfigTransferRequest.c	\
-	HNBConfigTransferResponse.c	\
-	RelocationComplete.c	\
-	U-RNTIQueryRequest.c	\
-	U-RNTIQueryResponse.c	\
-	PrivateMessage.c	\
-	IE.c
+	Criticality.c	\
+	Presence.c	\
+	PrivateIE-ID.c	\
+	ProcedureCode.c	\
+	ProtocolIE-ID.c	\
+	TriggeringMessage.c	\
+	ProtocolIE-Container.c	\
+	ProtocolIE-Single-Container.c	\
+	ProtocolIE-Field.c	\
+	ProtocolIE-ContainerList.c	\
+	ProtocolExtensionContainer.c	\
+	ProtocolExtensionField.c	\
+	PrivateIE-Container.c	\
+	PrivateIE-Field.c
 
 ASN_MODULE_INC=	\
-	Criticality.h	\
-	Presence.h	\
-	PrivateIE-ID.h	\
-	ProcedureCode.h	\
-	ProtocolIE-ID.h	\
-	TriggeringMessage.h	\
-	IE-Extensions.h	\
+	HNBAP-PDU.h	\
+	InitiatingMessage.h	\
+	SuccessfulOutcome.h	\
+	UnsuccessfulOutcome.h	\
+	HNBRegisterRequest.h	\
+	HNBRegisterAccept.h	\
+	HNBRegisterReject.h	\
+	HNBDe-Register.h	\
+	UERegisterRequest.h	\
+	UERegisterAccept.h	\
+	UERegisterReject.h	\
+	UEDe-Register.h	\
+	CSGMembershipUpdate.h	\
+	TNLUpdateRequest.h	\
+	TNLUpdateResponse.h	\
+	TNLUpdateFailure.h	\
+	HNBConfigTransferRequest.h	\
+	HNBConfigTransferResponse.h	\
+	RelocationComplete.h	\
+	ErrorIndication.h	\
+	PrivateMessage.h	\
+	U-RNTIQueryRequest.h	\
+	U-RNTIQueryResponse.h	\
 	Access-stratum-release-indicator.h	\
 	AccessResult.h	\
 	AltitudeAndDirection.h	\
@@ -207,30 +229,21 @@ ASN_MODULE_INC=	\
 	URAIdentity.h	\
 	U-RNTI.h	\
 	UnknownU-RNTIIndication.h	\
-	HNBAP-PDU.h	\
-	InitiatingMessage.h	\
-	SuccessfulOutcome.h	\
-	UnsuccessfulOutcome.h	\
-	HNBRegisterRequest.h	\
-	HNBRegisterAccept.h	\
-	HNBRegisterReject.h	\
-	UERegisterRequest.h	\
-	UERegisterAccept.h	\
-	UERegisterReject.h	\
-	UEDe-Register.h	\
-	HNBDe-Register.h	\
-	ErrorIndication.h	\
-	CSGMembershipUpdate.h	\
-	TNLUpdateRequest.h	\
-	TNLUpdateResponse.h	\
-	TNLUpdateFailure.h	\
-	HNBConfigTransferRequest.h	\
-	HNBConfigTransferResponse.h	\
-	RelocationComplete.h	\
-	U-RNTIQueryRequest.h	\
-	U-RNTIQueryResponse.h	\
-	PrivateMessage.h	\
-	IE.h
+	Criticality.h	\
+	Presence.h	\
+	PrivateIE-ID.h	\
+	ProcedureCode.h	\
+	ProtocolIE-ID.h	\
+	TriggeringMessage.h	\
+	ProtocolIE-Container.h	\
+	ProtocolIE-Single-Container.h	\
+	ProtocolIE-Field.h	\
+	ProtocolIE-ContainerList.h	\
+	ProtocolExtensionContainer.h	\
+	ProtocolExtensionField.h	\
+	PrivateIE-Container.h	\
+	PrivateIE-Field.h \
+	asn_constant.h
 
 AM_CFLAGS = -I$(top_srcdir)/include $(ASN1C_CFLAGS) $(OSMOCORE_CFLAGS)
 
@@ -243,8 +256,9 @@ libosmo_asn1_hnbap_a_LIBADD=$(ASN1C_LDADD)
 regen: regenerate-from-asn1-source
 
 regenerate-from-asn1-source:
-	asn1c -gen-PER -fnative-types $(HNBAP_ASN1)/HNBAP-CommonDataTypes.asn $(HNBAP_ASN1)/HNBAP-Constants.asn $(HNBAP_ASN1)/HNBAP-IEs.asn $(HNBAP_ASN1)/HNBAP-PDU.asn
-#	remove the local copy of the runtime code
-	-rm ANY.* BOOLEAN.* INTEGER.* NativeEnumerated.* NativeInteger.* OBJECT_IDENTIFIER.* asn_* OCTET_STRING.* converter-sample.c per_* xer_* constr* der_* ber_* BIT_STRING.*
+	asn1c -fcompound-names -fno-include-deps -gen-PER -no-gen-example $(HNBAP_ASN1)/hnbap-14.0.0.asn1
 #	change include style to `#include <dir/foo.h>'
 	$(top_srcdir)/move-asn1-header-files.sh osmocom/hnbap $(ASN_MODULE_INC)
+#	remove the local copy of the runtime code
+	@rm -f ANY.* BOOLEAN.* INTEGER*.* NativeEnumerated*.* NativeInteger*.* NULL.* OBJECT_IDENTIFIER.* OCTET_STRING*.* OPEN_TYPE*.* converter-sample.c oer_* per_* xer_* constr* der_* ber_* BIT_STRING*.* asn*.*
+

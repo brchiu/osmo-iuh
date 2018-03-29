@@ -25,7 +25,6 @@
 #include <osmocom/ranap/iu_helpers.h>
 
 #include <osmocom/ranap/ranap_common.h>
-#include <osmocom/ranap/ranap_ies_defs.h>
 #include <osmocom/ranap/ranap_msg_factory.h>
 
 #define DRANAP _ranap_DRANAP
@@ -42,30 +41,30 @@ static long *new_long(long in)
 struct msgb *ranap_new_msg_reset(RANAP_CN_DomainIndicator_t domain,
 				 const RANAP_Cause_t *cause)
 {
-	RANAP_ResetIEs_t ies;
-	RANAP_Reset_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_Reset_t *out;
+	RANAP_ResetIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	ies.cN_DomainIndicator = domain;
-	if (cause)
-		memcpy(&ies.cause, cause, sizeof(ies.cause));
+	memset(&pdu, 0, sizeof(pdu));
 
-	memset(&out, 0, sizeof(out));
-	rc = ranap_encode_reseties(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding reset IEs: %d\n", rc);
-		return NULL;
-	}
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_Reset;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_Reset;
 
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_Reset,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_Reset,
-						&out);
+	out = &pdu.choice.initiatingMessage.value.choice.Reset;
 
-	/* release dynamic allocations attached to dt */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Reset, &out);
+	ie = (RANAP_ResetIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_Cause;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_ResetIEs__value_PR_Cause;
+	memcpy(&ie->value.choice.Cause, cause, sizeof(*cause));
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -74,40 +73,44 @@ struct msgb *ranap_new_msg_reset(RANAP_CN_DomainIndicator_t domain,
 struct msgb *ranap_new_msg_reset_ack(RANAP_CN_DomainIndicator_t domain,
 				     RANAP_GlobalRNC_ID_t *rnc_id)
 {
-	RANAP_ResetAcknowledgeIEs_t ies;
-	RANAP_ResetAcknowledge_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_ResetAcknowledge_t *out;
+	RANAP_ResetAcknowledgeIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	ies.cN_DomainIndicator = domain;
+	memset(&pdu, 0, sizeof(pdu));
+
+	pdu.present = RANAP_RANAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = RANAP_id_Reset;
+	pdu.choice.successfulOutcome.criticality = RANAP_Criticality_reject;
+	pdu.choice.successfulOutcome.value.present = RANAP_SuccessfulOutcome__value_PR_ResetAcknowledge;
+
+	out = &pdu.choice.successfulOutcome.value.choice.ResetAcknowledge;
+
+	ie = (RANAP_ResetAcknowledgeIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_CN_DomainIndicator;
+	ie->criticality = RANAP_Criticality_reject;
+	ie->value.present = RANAP_ResetAcknowledgeIEs__value_PR_CN_DomainIndicator;
+	ie->value.choice.CN_DomainIndicator = domain;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
 	/* The RNC shall include the globalRNC_ID in the RESET
 	 * ACKNOWLEDGE message to the CN */
 	if (rnc_id) {
-		ies.presenceMask = RESETACKNOWLEDGEIES_RANAP_GLOBALRNC_ID_PRESENT;
-		OCTET_STRING_noalloc(&ies.globalRNC_ID.pLMNidentity,
+		ie = (RANAP_ResetAcknowledgeIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = RANAP_id_GlobalRNC_ID;
+		ie->criticality = RANAP_Criticality_reject;
+		ie->value.present = RANAP_ResetAcknowledgeIEs__value_PR_GlobalRNC_ID;
+		OCTET_STRING_noalloc(&ie->value.choice.GlobalRNC_ID.pLMNidentity,
 				     rnc_id->pLMNidentity.buf,
 				     rnc_id->pLMNidentity.size);
-		ies.globalRNC_ID.rNC_ID = rnc_id->rNC_ID;
+		ie->value.choice.GlobalRNC_ID.rNC_ID = rnc_id->rNC_ID;;
+		ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 	}
 
-	/* FIXME: Do we need criticalityDiagnostics */
+	msg = _ranap_gen_msg(&pdu);
 
-	memset(&out, 0, sizeof(out));
-	rc = ranap_encode_resetacknowledgeies(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding reset ack IEs: %d\n", rc);
-		return NULL;
-	}
-
-	msg = ranap_generate_successful_outcome(RANAP_ProcedureCode_id_Reset,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_ResetAcknowledge,
-						&out);
-
-	/* release dynamic allocations attached to dt */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_ResetAcknowledge, &out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -117,45 +120,82 @@ struct msgb *ranap_new_msg_initial_ue(uint32_t conn_id, int is_ps,
 				     RANAP_GlobalRNC_ID_t *rnc_id,
 				     uint8_t *nas_pdu, unsigned int nas_len)
 {
-	RANAP_InitialUE_MessageIEs_t ies;
-	RANAP_InitialUE_Message_t out;
-	struct msgb *msg;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_InitialUE_Message_t *out;
+	RANAP_InitialUE_MessageIEs_t *ie;
 	uint32_t ctxidbuf;
-	int rc;
 	uint16_t buf0 = 0x2342;
+	struct msgb *msg;
 
-	memset(&ies, 0, sizeof(ies));
-	if (is_ps)
-		ies.cN_DomainIndicator = RANAP_CN_DomainIndicator_ps_domain;
-	else
-		ies.cN_DomainIndicator = RANAP_CN_DomainIndicator_cs_domain;
+	memset(&pdu, 0, sizeof(pdu));
 
-	OCTET_STRING_noalloc(&ies.lai.pLMNidentity, rnc_id->pLMNidentity.buf, rnc_id->pLMNidentity.size);
-	OCTET_STRING_noalloc(&ies.lai.lAC, (uint8_t *)&buf0, sizeof(buf0));
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_InitialUE_Message;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_InitialUE_Message;
 
-	OCTET_STRING_noalloc(&ies.sai.pLMNidentity, rnc_id->pLMNidentity.buf, rnc_id->pLMNidentity.size);
-	OCTET_STRING_noalloc(&ies.sai.lAC, (uint8_t *)&buf0, sizeof(buf0));
-	OCTET_STRING_noalloc(&ies.sai.sAC, (uint8_t *)&buf0, sizeof(buf0));
+	out = &pdu.choice.initiatingMessage.value.choice.InitialUE_Message;
 
-	OCTET_STRING_noalloc(&ies.nas_pdu, nas_pdu, nas_len);
-	asn1_u24_to_bitstring(&ies.iuSigConId, &ctxidbuf, conn_id);
-	OCTET_STRING_noalloc(&ies.globalRNC_ID.pLMNidentity, rnc_id->pLMNidentity.buf, rnc_id->pLMNidentity.size);
-	ies.globalRNC_ID.rNC_ID = rnc_id->rNC_ID;
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_CN_DomainIndicator;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_CN_DomainIndicator;
+	ie->value.choice.CN_DomainIndicator = is_ps ? RANAP_CN_DomainIndicator_ps_domain :
+						      RANAP_CN_DomainIndicator_cs_domain;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	memset(&out, 0, sizeof(out));
-	rc = ranap_encode_initialue_messageies(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding initial UE IEs: %d\n", rc);
-		return NULL;
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_LAI;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_LAI;
+	OCTET_STRING_noalloc(&ie->value.choice.LAI.pLMNidentity, rnc_id->pLMNidentity.buf, rnc_id->pLMNidentity.size);
+	OCTET_STRING_noalloc(&ie->value.choice.LAI.lAC, (uint8_t *)&buf0, sizeof(buf0));
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	if (is_ps) {
+		ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = RANAP_id_RAC;
+		ie->criticality = RANAP_Criticality_ignore;
+		ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_RAC;
+		// ie->value.choice.RAC = ;
+		ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 	}
 
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_InitialUE_Message,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_InitialUE_Message,
-						&out);
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(RANAP_InitialUE_MessageIEs_t));
+	ie->id = RANAP_id_SAI;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_SAI;
+	OCTET_STRING_noalloc(&ie->value.choice.SAI.pLMNidentity, rnc_id->pLMNidentity.buf, rnc_id->pLMNidentity.size);
+	OCTET_STRING_noalloc(&ie->value.choice.SAI.lAC, (uint8_t *)&buf0, sizeof(buf0));
+	OCTET_STRING_noalloc(&ie->value.choice.SAI.sAC, (uint8_t *)&buf0, sizeof(buf0));
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* release dynamic allocations attached to dt */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_InitialUE_Message, &out);
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_NAS_PDU;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_NAS_PDU;
+	OCTET_STRING_noalloc(&ie->value.choice.NAS_PDU, nas_pdu, nas_len);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_IuSigConId;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_IuSignallingConnectionIdentifier;
+	asn1_u24_to_bitstring(&ie->value.choice.IuSignallingConnectionIdentifier, &ctxidbuf, conn_id);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	ie = (RANAP_InitialUE_MessageIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_GlobalRNC_ID;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_GlobalRNC_ID;
+	OCTET_STRING_noalloc(&ie->value.choice.GlobalRNC_ID.pLMNidentity,
+			     rnc_id->pLMNidentity.buf,rnc_id->pLMNidentity.size);
+	ie->value.choice.GlobalRNC_ID.rNC_ID = rnc_id->rNC_ID;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -164,40 +204,38 @@ struct msgb *ranap_new_msg_initial_ue(uint32_t conn_id, int is_ps,
 /*! \brief generate RANAP DIRECT TRANSFER message */
 struct msgb *ranap_new_msg_dt(uint8_t sapi, const uint8_t *nas, unsigned int nas_len)
 {
-	RANAP_DirectTransferIEs_t ies;
-	RANAP_DirectTransfer_t dt;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_DirectTransfer_t *out;
+	RANAP_DirectTransferIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&dt, 0, sizeof(dt));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* only SAPI optional field shall be present for CN->RNC */
-	ies.presenceMask = DIRECTTRANSFERIES_RANAP_SAPI_PRESENT;
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_DirectTransfer;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_DirectTransfer;
 
-	if (sapi == 3)
-		ies.sapi = RANAP_SAPI_sapi_3;
-	else
-		ies.sapi = RANAP_SAPI_sapi_0;
+	out = &pdu.choice.initiatingMessage.value.choice.DirectTransfer;
 
+	ie = (RANAP_DirectTransferIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_NAS_PDU;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_DirectTransferIEs__value_PR_NAS_PDU;
 	/* Avoid copying + later freeing of OCTET STRING */
-	OCTET_STRING_noalloc(&ies.nas_pdu, nas, nas_len);
+	OCTET_STRING_noalloc(&ie->value.choice.NAS_PDU, nas, nas_len);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* ies -> dt */
-	rc = ranap_encode_directtransferies(&dt, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding direct transfer IEs: %d\n", rc);
-		return NULL;
-	}
+	ie = (RANAP_DirectTransferIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_SAPI;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_DirectTransferIEs__value_PR_SAPI;
+	ie->value.choice.SAPI = sapi == 3 ? RANAP_SAPI_sapi_3 : RANAP_SAPI_sapi_0;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* dt -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_DirectTransfer,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_DirectTransfer,
-						&dt);
+	msg = _ranap_gen_msg(&pdu);
 
-	/* release dynamic allocations attached to dt */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_DirectTransfer, &dt);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -215,59 +253,63 @@ static const RANAP_EncryptionAlgorithm_t enc_alg[2] = {
 /*! \brief generate RANAP SECURITY MODE COMMAND message */
 struct msgb *ranap_new_msg_sec_mod_cmd(const uint8_t *ik, const uint8_t *ck, enum RANAP_KeyStatus status)
 {
-	RANAP_SecurityModeCommandIEs_t ies;
-	RANAP_SecurityModeCommand_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_SecurityModeCommand_t *out;
+	RANAP_SecurityModeCommandIEs_t *ie;
 	struct msgb *msg;
-	int i, rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	for (i = 0; i < ARRAY_SIZE(ip_alg); i++) {
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_SecurityModeControl;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_SecurityModeCommand;
+
+	out = &pdu.choice.initiatingMessage.value.choice.SecurityModeCommand;
+
+	ie = (RANAP_SecurityModeCommandIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_IntegrityProtectionInformation;
+	ie->criticality = RANAP_Criticality_reject;
+	ie->value.present = RANAP_SecurityModeCommandIEs__value_PR_IntegrityProtectionInformation;
+
+	for (int i = 0; i < ARRAY_SIZE(ip_alg); i++) {
 		/* needs to be dynamically allocated, as
 		 * SET_OF_free() will call FREEMEM() on it */
 		RANAP_IntegrityProtectionAlgorithm_t *alg = CALLOC(1, sizeof(*alg));
 		*alg = ip_alg[i];
-		ASN_SEQUENCE_ADD(&ies.integrityProtectionInformation.permittedAlgorithms, alg);
+		ASN_SEQUENCE_ADD(&(ie->value.choice.IntegrityProtectionInformation), alg);
 	}
+	BIT_STRING_fromBuf(&ie->value.choice.IntegrityProtectionInformation.key, ik, 16*8);
 
-	BIT_STRING_fromBuf(&ies.integrityProtectionInformation.key, ik, 16*8);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
 	if (ck) {
-		ies.presenceMask = SECURITYMODECOMMANDIES_RANAP_ENCRYPTIONINFORMATION_PRESENT;
-		for (i = 0; i < ARRAY_SIZE(ip_alg); i++) {
+		ie = (RANAP_SecurityModeCommandIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = RANAP_id_EncryptionInformation;
+		ie->criticality = RANAP_Criticality_ignore;
+		ie->value.present = RANAP_SecurityModeCommandIEs__value_PR_EncryptionInformation;
+		for (int i = 0; i < ARRAY_SIZE(ip_alg); i++) {
 			/* needs to be dynamically allocated, as
 			 * SET_OF_free() will call FREEMEM() on it */
 			RANAP_EncryptionAlgorithm_t *alg = CALLOC(1, sizeof(*alg));
 			*alg = enc_alg[i];
-			ASN_SEQUENCE_ADD(&ies.encryptionInformation.permittedAlgorithms, alg);
+			ASN_SEQUENCE_ADD(&(ie->value.choice.EncryptionInformation), alg);
 		}
-		BIT_STRING_fromBuf(&ies.encryptionInformation.key, ck, 16*8);
+		BIT_STRING_fromBuf(&ie->value.choice.EncryptionInformation.key, ck, 16*8);
+
+		ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 	}
 
-	ies.keyStatus = status;
+	ie = (RANAP_SecurityModeCommandIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_KeyStatus;
+	ie->criticality = RANAP_Criticality_reject;
+	ie->value.present = RANAP_SecurityModeCommandIEs__value_PR_KeyStatus;
+	ie->value.choice.KeyStatus = status;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* ies -> out */
-	rc = ranap_encode_securitymodecommandies(&out, &ies);
+	msg = _ranap_gen_msg(&pdu);
 
-	/* release dynamic allocations attached to ies */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_IntegrityProtectionInformation, &ies.integrityProtectionInformation);
-	if (ck)
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_EncryptionInformation, &ies.encryptionInformation);
-
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding security mode command IEs: %d\n", rc);
-		return NULL;
-	}
-
-	/* out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_SecurityModeControl,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_SecurityModeCommand,
-						&out);
-
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_SecurityModeCommand, &out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -277,33 +319,37 @@ struct msgb *ranap_new_msg_sec_mod_compl(
 	RANAP_ChosenIntegrityProtectionAlgorithm_t chosen_ip_alg,
 	RANAP_ChosenEncryptionAlgorithm_t chosen_enc_alg)
 {
-	RANAP_SecurityModeCompleteIEs_t ies;
-	RANAP_SecurityModeComplete_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_SecurityModeComplete_t *out;
+	RANAP_SecurityModeCompleteIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	ies.presenceMask = SECURITYMODECOMPLETEIES_RANAP_CHOSENENCRYPTIONALGORITHM_PRESENT;
-	ies.chosenIntegrityProtectionAlgorithm = chosen_ip_alg;
-	ies.chosenEncryptionAlgorithm = chosen_enc_alg;
+	pdu.present = RANAP_RANAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = RANAP_id_SecurityModeControl;
+	pdu.choice.successfulOutcome.criticality = RANAP_Criticality_reject;
+	pdu.choice.successfulOutcome.value.present = RANAP_SuccessfulOutcome__value_PR_SecurityModeComplete;
 
-	/* ies -> out */
-	rc = ranap_encode_securitymodecompleteies(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding security mode complete IEs: %d\n", rc);
-		return NULL;
-	}
+	out = &pdu.choice.successfulOutcome.value.choice.SecurityModeComplete;
 
-	/* out -> msg */
-	msg = ranap_generate_successful_outcome(RANAP_ProcedureCode_id_SecurityModeControl,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_SecurityModeComplete,
-						&out);
+	ie = (RANAP_SecurityModeCompleteIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_ChosenIntegrityProtectionAlgorithm;
+	ie->criticality = RANAP_Criticality_reject;
+	ie->value.present = RANAP_SecurityModeCompleteIEs__value_PR_ChosenIntegrityProtectionAlgorithm;
+	ie->value.choice.ChosenIntegrityProtectionAlgorithm = chosen_ip_alg;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_SecurityModeComplete, &out);
+	ie = (RANAP_SecurityModeCompleteIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_ChosenEncryptionAlgorithm;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_SecurityModeCompleteIEs__value_PR_ChosenEncryptionAlgorithm;
+	ie->value.choice.ChosenIntegrityProtectionAlgorithm = chosen_enc_alg;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -311,42 +357,41 @@ struct msgb *ranap_new_msg_sec_mod_compl(
 /*! \brief generate RANAP COMMON ID message */
 struct msgb *ranap_new_msg_common_id(const char *imsi)
 {
-	RANAP_CommonID_IEs_t ies;
-	RANAP_CommonID_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_CommonID_t *out;
+	RANAP_CommonID_IEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
+
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_SecurityModeControl;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_CommonID;
+
+	out = &pdu.choice.initiatingMessage.value.choice.CommonID;
+
+	ie = (RANAP_CommonID_IEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_PermanentNAS_UE_ID;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_CommonID_IEs__value_PR_PermanentNAS_UE_ID;
 
 	if (imsi) {
 		uint8_t *imsi_buf = CALLOC(1, 16);
+		int rc;
 		rc = ranap_imsi_encode(imsi_buf, 16, imsi);
-		ies.permanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_iMSI;
-		ies.permanentNAS_UE_ID.choice.iMSI.buf = imsi_buf;
-		ies.permanentNAS_UE_ID.choice.iMSI.size = rc;
-	} else
-		ies.permanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_NOTHING;
-
-	/* ies -> out */
-	rc = ranap_encode_commonid_ies(&out, &ies);
-
-	/* release dynamic allocations attached to ies */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_PermanentNAS_UE_ID, &ies.permanentNAS_UE_ID);
-
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding common id IEs: %d\n", rc);
-		return NULL;
+		ie->value.choice.PermanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_iMSI;
+		ie->value.choice.PermanentNAS_UE_ID.choice.iMSI.buf = imsi_buf;
+		ie->value.choice.PermanentNAS_UE_ID.choice.iMSI.size = rc;
+	} else {
+		ie->value.choice.PermanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_NOTHING;
 	}
 
-	/* out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_CommonID,
-						RANAP_Criticality_ignore,
-						&asn_DEF_RANAP_CommonID,
-						&out);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_CommonID, &out);
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -354,31 +399,31 @@ struct msgb *ranap_new_msg_common_id(const char *imsi)
 /*! \brief generate RANAP IU RELEASE COMMAND message */
 struct msgb *ranap_new_msg_iu_rel_cmd(const RANAP_Cause_t *cause_in)
 {
-	RANAP_Iu_ReleaseCommandIEs_t ies;
-	RANAP_Iu_ReleaseCommand_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_Iu_ReleaseCommand_t *out;
+	RANAP_Iu_ReleaseCommandIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	memcpy(&ies.cause, cause_in, sizeof(ies.cause));
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_Iu_Release;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_Iu_ReleaseCommand;
 
-	/* ies -> out */
-	rc = ranap_encode_iu_releasecommandies(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding release command IEs: %d\n", rc);
-		return NULL;
-	}
+	out = &pdu.choice.initiatingMessage.value.choice.Iu_ReleaseCommand;
 
-	/* out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_Iu_Release,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_Iu_ReleaseCommand,
-						&out);
+	ie = (RANAP_Iu_ReleaseCommandIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_Cause;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_Iu_ReleaseCommandIEs__value_PR_Cause;
+	memcpy(&ie->value.choice.Cause, cause_in, sizeof(*cause_in));
 
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Iu_ReleaseCommand, &out);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -386,29 +431,19 @@ struct msgb *ranap_new_msg_iu_rel_cmd(const RANAP_Cause_t *cause_in)
 /*! \brief generate RAPAP IU RELEASE COMPLETE message */
 struct msgb *ranap_new_msg_iu_rel_compl(void)
 {
-	RANAP_Iu_ReleaseCompleteIEs_t ies;
-	RANAP_Iu_ReleaseComplete_t out;
+	RANAP_RANAP_PDU_t pdu;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* ies -> out */
-	rc = ranap_encode_iu_releasecompleteies(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding release complete IEs: %d\n", rc);
-		return NULL;
-	}
+	pdu.present = RANAP_RANAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = RANAP_id_Iu_Release;
+	pdu.choice.successfulOutcome.criticality = RANAP_Criticality_ignore;
+	pdu.choice.successfulOutcome.value.present = RANAP_SuccessfulOutcome__value_PR_Iu_ReleaseComplete;
 
-	/* out -> msg */
-	msg = ranap_generate_successful_outcome(RANAP_ProcedureCode_id_Iu_Release,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_Iu_ReleaseComplete,
-						&out);
+	msg = _ranap_gen_msg(&pdu);
 
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Iu_ReleaseComplete, &out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -416,63 +451,67 @@ struct msgb *ranap_new_msg_iu_rel_compl(void)
 /*! \brief generate RANAP PAGING COMMAND message */
 struct msgb *ranap_new_msg_paging_cmd(const char *imsi, const uint32_t *tmsi, int is_ps, uint32_t cause)
 {
-	RANAP_PagingIEs_t ies;
-	RANAP_Paging_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_Paging_t *out;
+	RANAP_PagingIEs_t *ie;
 	struct msgb *msg;
-	uint8_t *imsi_buf = CALLOC(1, 16);
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* put together the 'ies' */
-	if (is_ps)
-		ies.cN_DomainIndicator = RANAP_CN_DomainIndicator_ps_domain;
-	else
-		ies.cN_DomainIndicator = RANAP_CN_DomainIndicator_cs_domain;
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_Paging;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_Paging;
 
-	rc = ranap_imsi_encode(imsi_buf, 16, imsi);
-	ies.permanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_iMSI;
-	ies.permanentNAS_UE_ID.choice.iMSI.buf = imsi_buf;
-	ies.permanentNAS_UE_ID.choice.iMSI.size = rc;
+	out = &pdu.choice.initiatingMessage.value.choice.Paging;
+
+	ie = (RANAP_PagingIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_CN_DomainIndicator;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_InitialUE_MessageIEs__value_PR_CN_DomainIndicator;
+	ie->value.choice.CN_DomainIndicator = is_ps ? RANAP_CN_DomainIndicator_ps_domain : RANAP_CN_DomainIndicator_cs_domain;
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	ie = (RANAP_PagingIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_PermanentNAS_UE_ID;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_CommonID_IEs__value_PR_PermanentNAS_UE_ID;
+	ie->value.choice.PermanentNAS_UE_ID.present = RANAP_PermanentNAS_UE_ID_PR_iMSI;
+	ie->value.choice.PermanentNAS_UE_ID.choice.iMSI.buf = CALLOC(1, 16);
+	ie->value.choice.PermanentNAS_UE_ID.choice.iMSI.size = 8;
+	ranap_imsi_encode(ie->value.choice.PermanentNAS_UE_ID.choice.iMSI.buf, 16, imsi);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
 	if (tmsi) {
 		uint32_t *tmsi_buf = CALLOC(1, sizeof(*tmsi_buf));
-		ies.presenceMask |= PAGINGIES_RANAP_TEMPORARYUE_ID_PRESENT;
+
+		ie = (RANAP_PagingIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = RANAP_id_TemporaryUE_ID;
+		ie->criticality = RANAP_Criticality_ignore;
+		ie->value.present = RANAP_PagingIEs__value_PR_TemporaryUE_ID;
+
 		if (is_ps) {
-			ies.temporaryUE_ID.present = RANAP_TemporaryUE_ID_PR_p_TMSI;
-			asn1_u32_to_str(&ies.temporaryUE_ID.choice.tMSI, tmsi_buf, *tmsi);
+			ie->value.choice.TemporaryUE_ID.present = RANAP_TemporaryUE_ID_PR_p_TMSI;
+			asn1_u32_to_str(&ie->value.choice.TemporaryUE_ID.choice.p_TMSI, tmsi_buf, *tmsi);
 		} else {
-			ies.temporaryUE_ID.present = RANAP_TemporaryUE_ID_PR_tMSI;
-			asn1_u32_to_str(&ies.temporaryUE_ID.choice.p_TMSI, tmsi_buf, *tmsi);
+			ie->value.choice.TemporaryUE_ID.present = RANAP_TemporaryUE_ID_PR_tMSI;
+			asn1_u32_to_str(&ie->value.choice.TemporaryUE_ID.choice.tMSI, tmsi_buf, *tmsi);
 		}
+		ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 	}
 
 	if (cause) {
-		ies.presenceMask |= PAGINGIES_RANAP_PAGINGCAUSE_PRESENT;
-		ies.pagingCause = cause;
+		ie = (RANAP_PagingIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = RANAP_id_PermanentNAS_UE_ID;
+		ie->criticality = RANAP_Criticality_ignore;
+		ie->value.present = RANAP_PagingIEs__value_PR_PagingCause;
+		ie->value.choice.PagingCause = cause;
+		ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 	}
 
-	/* ies -> out */
-	rc = ranap_encode_pagingies(&out, &ies);
+	msg = _ranap_gen_msg(&pdu);
 
-	/* release dynamic allocation attached to ies */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_PermanentNAS_UE_ID, &ies.permanentNAS_UE_ID);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_TemporaryUE_ID, &ies.temporaryUE_ID);
-
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding paging IEs: %d\n", rc);
-		return NULL;
-	}
-
-	/* out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_Paging,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_Paging,
-						&out);
-
-	/* release dynamic allocations attached to out */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Paging, &out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -488,10 +527,10 @@ static RANAP_SDU_ErrorRatio_t *new_sdu_error_ratio(long mantissa, long exponent)
 }
 
 
-static RANAP_SDU_FormatInformationParameterItem_t *
+static struct RANAP_SDU_FormatInformationParameters__Member *
 new_format_info_pars(long sdu_size)
 {
-	RANAP_SDU_FormatInformationParameterItem_t *fmti = CALLOC(1, sizeof(*fmti));
+	struct RANAP_SDU_FormatInformationParameters__Member *fmti = CALLOC(1, sizeof(*fmti));
 	fmti->subflowSDU_Size = new_long(sdu_size);
 	return fmti;
 }
@@ -504,11 +543,11 @@ enum sdu_par_profile {
 };
 
 /* See Chapter 5 of TS 26.102 */
-static RANAP_SDU_ParameterItem_t *new_sdu_par_item(enum sdu_par_profile profile)
+static struct RANAP_SDU_Parameters__Member *new_sdu_par_item(enum sdu_par_profile profile)
 {
-	RANAP_SDU_ParameterItem_t *sdui = CALLOC(1, sizeof(*sdui));
+	struct RANAP_SDU_Parameters__Member *sdui = CALLOC(1, sizeof(*sdui));
 	RANAP_SDU_FormatInformationParameters_t *fmtip = CALLOC(1, sizeof(*fmtip));
-	RANAP_SDU_FormatInformationParameterItem_t *fmti;
+	struct RANAP_SDU_FormatInformationParameters__Member *fmti;
 
 	switch (profile) {
 	case SDUPAR_P_VOICE0:
@@ -520,7 +559,7 @@ static RANAP_SDU_ParameterItem_t *new_sdu_par_item(enum sdu_par_profile profile)
 		fmti = new_format_info_pars(81);
 		ASN_SEQUENCE_ADD(fmtip, fmti);
 		fmti = new_format_info_pars(39);
-		ASN_SEQUENCE_ADD(fmtip, fmti);
+		ASN_SEQUENCE_ADD(&(fmtip->list), fmti);
 		/* FIXME: could be 10 SDU descriptors for AMR! */
 		break;
 	case SDUPAR_P_VOICE1:
@@ -531,7 +570,7 @@ static RANAP_SDU_ParameterItem_t *new_sdu_par_item(enum sdu_par_profile profile)
 		fmti = new_format_info_pars(103);
 		ASN_SEQUENCE_ADD(fmtip, fmti);
 		fmti = new_format_info_pars(0);
-		ASN_SEQUENCE_ADD(fmtip, fmti);
+		ASN_SEQUENCE_ADD(&(fmtip->list), fmti);
 		/* FIXME: could be 10 SDU descriptors for AMR! */
 		break;
 	case SDUPAR_P_VOICE2:
@@ -542,7 +581,7 @@ static RANAP_SDU_ParameterItem_t *new_sdu_par_item(enum sdu_par_profile profile)
 		fmti = new_format_info_pars(60);
 		ASN_SEQUENCE_ADD(fmtip, fmti);
 		fmti = new_format_info_pars(0);
-		ASN_SEQUENCE_ADD(fmtip, fmti);
+		ASN_SEQUENCE_ADD(&(fmtip->list), fmti);
 		/* FIXME: could be 10 SDU descriptors for AMR! */
 		break;
 	case SDUPAR_P_DATA:
@@ -588,7 +627,7 @@ static RANAP_RAB_Parameters_t *new_rab_par_voice(long bitrate_guaranteed,
 						 long bitrate_max)
 {
 	RANAP_RAB_Parameters_t *rab = CALLOC(1, sizeof(*rab));
-	RANAP_SDU_ParameterItem_t *sdui;
+	struct RANAP_SDU_Parameters__Member *sdui;
 
 	rab->trafficClass = RANAP_TrafficClass_conversational;
 	rab->rAB_AsymmetryIndicator = RANAP_RAB_AsymmetryIndicator_symmetric_bidirectional;
@@ -600,11 +639,11 @@ static RANAP_RAB_Parameters_t *new_rab_par_voice(long bitrate_guaranteed,
 	rab->maxSDU_Size = 244;
 
 	sdui = new_sdu_par_item(SDUPAR_P_VOICE0);
-	ASN_SEQUENCE_ADD(&rab->sDU_Parameters, sdui);
+	ASN_SEQUENCE_ADD(&rab->sDU_Parameters.list, sdui);
 	sdui = new_sdu_par_item(SDUPAR_P_VOICE1);
-	ASN_SEQUENCE_ADD(&rab->sDU_Parameters, sdui);
+	ASN_SEQUENCE_ADD(&rab->sDU_Parameters.list, sdui);
 	sdui = new_sdu_par_item(SDUPAR_P_VOICE2);
-	ASN_SEQUENCE_ADD(&rab->sDU_Parameters, sdui);
+	ASN_SEQUENCE_ADD(&rab->sDU_Parameters.list, sdui);
 
 	rab->transferDelay = new_long(80);
 	rab->allocationOrRetentionPriority = new_alloc_ret_prio(RANAP_PriorityLevel_no_priority, 0, 1, 0);
@@ -625,7 +664,8 @@ static RANAP_NAS_SynchronisationIndicator_t *new_rab_nas_sync_ind(int val)
 static RANAP_RAB_Parameters_t *new_rab_par_data(uint32_t dl_max_bitrate, uint32_t ul_max_bitrate)
 {
 	RANAP_RAB_Parameters_t *rab = CALLOC(1, sizeof(*rab));
-	RANAP_SDU_ParameterItem_t *sdui;
+	struct RANAP_SDU_Parameters__Member *sdui;
+	RANAP_RAB_Parameters_ExtIEs_t *ie;
 
 	rab->trafficClass = RANAP_TrafficClass_background;
 	rab->rAB_AsymmetryIndicator = RANAP_RAB_AsymmetryIndicator_asymmetric_bidirectional;
@@ -636,25 +676,22 @@ static RANAP_RAB_Parameters_t *new_rab_par_data(uint32_t dl_max_bitrate, uint32_
 	rab->maxSDU_Size = 8000;
 
 	sdui = new_sdu_par_item(SDUPAR_P_DATA);
-	ASN_SEQUENCE_ADD(&rab->sDU_Parameters, sdui);
+	ASN_SEQUENCE_ADD(&rab->sDU_Parameters.list, sdui);
 
 	rab->allocationOrRetentionPriority = new_alloc_ret_prio(RANAP_PriorityLevel_no_priority, 0, 0, 0);
 
-	RANAP_ProtocolExtensionField_t *pxf = CALLOC(1, sizeof(*pxf));
-	pxf->id = RANAP_ProtocolIE_ID_id_RAB_Parameter_ExtendedMaxBitrateList;
-	pxf->criticality = RANAP_Criticality_ignore;
+	rab->iE_Extensions = (struct RANAP_ProtocolExtensionContainer *)CALLOC(1, sizeof(RANAP_ProtocolExtensionContainer_7796P173_t));
 
-	RANAP_RAB_Parameter_ExtendedMaxBitrateList_t *rab_mbrlist = CALLOC(1, sizeof(*rab_mbrlist));
+	ie = (RANAP_RAB_Parameters_ExtIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_RAB_Parameter_ExtendedMaxBitrateList;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->extensionValue.present = RANAP_RAB_Parameters_ExtIEs__extensionValue_PR_RAB_Parameter_ExtendedMaxBitrateList;
+
 	RANAP_ExtendedMaxBitrate_t *xmbr = CALLOC(1, sizeof(*xmbr));
 	*xmbr = 42000000;
-	ASN_SEQUENCE_ADD(&rab_mbrlist->list, xmbr);
+	ASN_SEQUENCE_ADD(&ie->extensionValue.choice.RAB_Parameter_ExtendedMaxBitrateList.list, xmbr);
 
-	ANY_fromType_aper(&pxf->value, &asn_DEF_RANAP_RAB_Parameter_ExtendedMaxBitrateList, rab_mbrlist);
-
-	ASN_STRUCT_FREE(asn_DEF_RANAP_RAB_Parameter_ExtendedMaxBitrateList, rab_mbrlist);
-
-	rab->iE_Extensions = CALLOC(1, sizeof(*rab->iE_Extensions));
-	ASN_SEQUENCE_ADD(&rab->iE_Extensions->list, pxf);
+	ASN_SEQUENCE_ADD(&((RANAP_ProtocolExtensionContainer_7796P173_t *)rab->iE_Extensions)->list, ie);
 
 	return rab;
 }
@@ -749,65 +786,57 @@ struct msgb *ranap_new_msg_rab_assign_voice(uint8_t rab_id, uint32_t rtp_ip,
 					    uint16_t rtp_port,
 					    bool use_x213_nsap)
 {
-	RANAP_ProtocolIE_FieldPair_t *pair;
-	RANAP_RAB_AssignmentRequestIEs_t ies;
-	RANAP_RAB_AssignmentRequest_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_RAB_AssignmentRequest_t *out;
+	RANAP_RAB_AssignmentRequestIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* only assingnment is present, no release */
-	ies.presenceMask = RAB_ASSIGNMENTREQUESTIES_RANAP_RAB_SETUPORMODIFYLIST_PRESENT;
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_RAB_Assignment;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_RAB_AssignmentRequest;
 
-	/* put together the 'First' part */
-	RANAP_RAB_SetupOrModifyItemFirst_t first;
-	memset(&first, 0, sizeof(first));
-	assign_new_ra_id(&first.rAB_ID, rab_id);
-	first.nAS_SynchronisationIndicator = new_rab_nas_sync_ind(60);
-	first.rAB_Parameters = new_rab_par_voice(6700, 12200);
-	first.userPlaneInformation = new_upi(RANAP_UserPlaneMode_support_mode_for_predefined_SDU_sizes, 1); /* 2? */
-	first.transportLayerInformation = new_transp_info_rtp(rtp_ip, rtp_port,
-							      use_x213_nsap);
+	out = &pdu.choice.initiatingMessage.value.choice.RAB_AssignmentRequest;
 
-	/* put together the 'Second' part */
-	RANAP_RAB_SetupOrModifyItemSecond_t second;
-	memset(&second, 0, sizeof(second));
+	ie = (RANAP_RAB_AssignmentRequestIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_RAB_SetupOrModifyList;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_RAB_AssignmentRequestIEs__value_PR_RAB_SetupOrModifyList;
 
-	/* Build an IE Pair out of first and second part:
-	 * (first, second) -> pair */
-	pair = ranap_new_ie_pair(RANAP_ProtocolIE_ID_id_RAB_SetupOrModifyItem,
-				 RANAP_Criticality_reject,
-				 &asn_DEF_RANAP_RAB_SetupOrModifyItemFirst, &first,
-				 RANAP_Criticality_ignore,
-				 &asn_DEF_RANAP_RAB_SetupOrModifyItemSecond, &second);
+	{
+		RANAP_ProtocolIE_ContainerPair_7764P0_t *ie_container = (RANAP_ProtocolIE_ContainerPair_7764P0_t *)CALLOC(1, sizeof(*ie_container));
 
-	/* the pair has been made, we can release any of its elements */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyItemFirst, &first);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyItemSecond, &second);
+		for (int i = 0; i < 1; i++) {
+			RANAP_RAB_SetupOrModifyItem_IEs_t *setup_itm = (RANAP_RAB_SetupOrModifyItem_IEs_t *)CALLOC(1, sizeof(*setup_itm));
 
-	RANAP_ProtocolIE_ContainerPair_t *container_pair = CALLOC(1, sizeof(*container_pair));
-	/* Add the pair to the list of IEs of the RAB ass.req */
-	ASN_SEQUENCE_ADD(container_pair, pair);
-	ASN_SEQUENCE_ADD(&ies.raB_SetupOrModifyList.list, container_pair);
+			setup_itm->id = RANAP_id_RAB_SetupOrModifyItem;
+			setup_itm->firstCriticality = RANAP_Criticality_reject;
+			setup_itm->firstValue.present = RANAP_RAB_SetupOrModifyItem_IEs__firstValue_PR_RAB_SetupOrModifyItemFirst;
 
-	/* encode the IEs into the actual assignment request:
-	 * ies -> out */
-	rc = ranap_encode_rab_assignmentrequesties(&out, &ies);
-	/* 'out' has been generated, we can now release the input */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyList,
-				      &ies.raB_SetupOrModifyList);
-	if (rc < 0)
-		return NULL;
+			assign_new_ra_id(&setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.rAB_ID, 5);
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.nAS_SynchronisationIndicator = new_rab_nas_sync_ind(60);
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.rAB_Parameters = new_rab_par_voice(6700, 12200);
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.userPlaneInformation = new_upi(RANAP_UserPlaneMode_support_mode_for_predefined_SDU_sizes, 1); /* 2? */
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.transportLayerInformation = new_transp_info_rtp(14304/*rtp_ip*/, 60/*rtp_port*/,
+							      1 /*use_x213_nsap*/);
 
-	/* generate an Initiating Mesasage: out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_RAB_Assignment,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_RAB_AssignmentRequest, &out);
+			setup_itm->secondCriticality = RANAP_Criticality_ignore;
+			setup_itm->secondValue.present = RANAP_RAB_SetupOrModifyItem_IEs__secondValue_PR_RAB_SetupOrModifyItemSecond;
+			memset(&setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond, 0, sizeof(RANAP_RAB_SetupOrModifyItemSecond_t));
 
-	/* 'msg' has been generated, we cann now release the input 'out' */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_AssignmentRequest, &out);
+			ASN_SEQUENCE_ADD(&(ie_container->list), setup_itm);
+		}
+
+		ASN_SEQUENCE_ADD(&(ie->value.choice.RAB_SetupOrModifyList.list), ie_container);
+	}
+
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), out);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
@@ -817,148 +846,145 @@ struct msgb *ranap_new_msg_rab_assign_voice(uint8_t rab_id, uint32_t rtp_ip,
 struct msgb *ranap_new_msg_rab_assign_data(uint8_t rab_id, uint32_t gtp_ip,
 					   uint32_t gtp_tei, bool use_x213_nsap)
 {
-	RANAP_ProtocolIE_FieldPair_t *pair;
-	RANAP_RAB_AssignmentRequestIEs_t ies;
-	RANAP_RAB_AssignmentRequest_t out;
-	RANAP_DataVolumeReportingIndication_t *dat_vol_ind;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_RAB_AssignmentRequest_t *out;
+	RANAP_RAB_AssignmentRequestIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* only assingnment is present, no release */
-	ies.presenceMask = RAB_ASSIGNMENTREQUESTIES_RANAP_RAB_SETUPORMODIFYLIST_PRESENT;
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_RAB_Assignment;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_reject;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_RAB_AssignmentRequest;
 
-	/* put together the 'First' part */
-	RANAP_RAB_SetupOrModifyItemFirst_t first;
-	memset(&first, 0, sizeof(first));
-	assign_new_ra_id(&first.rAB_ID, rab_id);
-	//first.nAS_SynchronisationIndicator = FIXME;
+	out = &pdu.choice.initiatingMessage.value.choice.RAB_AssignmentRequest;
 
-	first.rAB_Parameters = new_rab_par_data(1600000, 800000);
-	first.userPlaneInformation = new_upi(RANAP_UserPlaneMode_transparent_mode, 1);
-	first.transportLayerInformation = new_transp_info_gtp(gtp_ip, gtp_tei,
-							      use_x213_nsap);
+	ie = (RANAP_RAB_AssignmentRequestIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_RAB_SetupOrModifyList;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_RAB_AssignmentRequestIEs__value_PR_RAB_SetupOrModifyList;
 
-	/* put together the 'Second' part */
-	RANAP_RAB_SetupOrModifyItemSecond_t second;
-	memset(&second, 0, sizeof(second));
-	second.pDP_TypeInformation = CALLOC(1, sizeof(*second.pDP_TypeInformation));
-	ASN_SEQUENCE_ADD(second.pDP_TypeInformation, new_long(RANAP_PDP_Type_ipv4));
-	dat_vol_ind = CALLOC(1, sizeof(*dat_vol_ind));
-	*dat_vol_ind = RANAP_DataVolumeReportingIndication_do_not_report;
-	second.dataVolumeReportingIndication = dat_vol_ind;
-	second.dl_GTP_PDU_SequenceNumber = new_long(0);
-	second.ul_GTP_PDU_SequenceNumber = new_long(0);
+	{
+		RANAP_ProtocolIE_ContainerPair_7764P0_t *ie_container = (RANAP_ProtocolIE_ContainerPair_7764P0_t *)CALLOC(1, sizeof(*ie_container));
 
-	/* Build an IE Pair out of first and second part:
-	 * (first, second) -> pair */
-	pair = ranap_new_ie_pair(RANAP_ProtocolIE_ID_id_RAB_SetupOrModifyItem,
-				 RANAP_Criticality_reject,
-				 &asn_DEF_RANAP_RAB_SetupOrModifyItemFirst,
-				 &first, RANAP_Criticality_ignore,
-				 &asn_DEF_RANAP_RAB_SetupOrModifyItemSecond,
-				 &second);
+		for (int i = 0; i < 1; i++) {
+			RANAP_RAB_SetupOrModifyItem_IEs_t *setup_itm = (RANAP_RAB_SetupOrModifyItem_IEs_t *)CALLOC(1, sizeof(*setup_itm));
 
-	/* the pair has been made, we can release any of its elements */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyItemFirst, &first);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyItemSecond, &second);
+			setup_itm->id = RANAP_id_RAB_SetupOrModifyItem;
+			setup_itm->firstCriticality = RANAP_Criticality_reject;
+			setup_itm->firstValue.present = RANAP_RAB_SetupOrModifyItem_IEs__firstValue_PR_RAB_SetupOrModifyItemFirst;
 
-	RANAP_ProtocolIE_ContainerPair_t *container_pair = CALLOC(1, sizeof(*container_pair));
-	/* Add the pair to the list of IEs of the RAB ass.req */
-	ASN_SEQUENCE_ADD(&container_pair->list, pair);
-	/* Add the pair to the list of IEs of the RAB ass.req */
-	ASN_SEQUENCE_ADD(&ies.raB_SetupOrModifyList.list, container_pair);
+			assign_new_ra_id(&setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.rAB_ID, 5);
 
-	/* encode the IEs into the actual assignment request:
-	 * ies -> out */
-	rc = ranap_encode_rab_assignmentrequesties(&out, &ies);
-	/* 'out' has been generated, we can now release the input */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_SetupOrModifyList,
-				      &ies.raB_SetupOrModifyList);
-	if (rc < 0)
-		return NULL;
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.rAB_Parameters = new_rab_par_data(1600000, 800000);
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.userPlaneInformation = new_upi(RANAP_UserPlaneMode_transparent_mode, 1); /* 2? */
+			setup_itm->firstValue.choice.RAB_SetupOrModifyItemFirst.transportLayerInformation = new_transp_info_gtp(14304/*rtp_ip*/, 60/*rtp_port*/,
+							      1 /*use_x213_nsap*/);
 
-	/* generate an Initiating Mesasage: out -> msg */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_RAB_Assignment,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_RAB_AssignmentRequest, &out);
+			setup_itm->secondCriticality = RANAP_Criticality_ignore;
+			setup_itm->secondValue.present = RANAP_RAB_SetupOrModifyItem_IEs__secondValue_PR_RAB_SetupOrModifyItemSecond;
+			setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond.pDP_TypeInformation = CALLOC(1, sizeof(RANAP_PDP_TypeInformation_t));
+			ASN_SEQUENCE_ADD(setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond.pDP_TypeInformation, new_long(RANAP_PDP_Type_ipv4));
 
-	/* 'msg' has been generated, we cann now release the input 'out' */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_AssignmentRequest, &out);
+			setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond.dataVolumeReportingIndication = new_long(RANAP_DataVolumeReportingIndication_do_not_report);
+			setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond.dl_GTP_PDU_SequenceNumber = new_long(0);
+			setup_itm->secondValue.choice.RAB_SetupOrModifyItemSecond.ul_GTP_PDU_SequenceNumber = new_long(0);
+
+			ASN_SEQUENCE_ADD(&(ie_container->list), setup_itm);
+		}
+
+		ASN_SEQUENCE_ADD(&(ie->value.choice.RAB_SetupOrModifyList.list), ie_container);
+	}
+
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
 
 struct msgb *ranap_new_msg_iu_rel_req(const RANAP_Cause_t *cause)
 {
-	RANAP_Iu_ReleaseRequestIEs_t ies;
-	RANAP_Iu_ReleaseRequest_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_Iu_ReleaseRequest_t *out;
+	RANAP_Iu_ReleaseRequestIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	memcpy(&ies.cause, cause, sizeof(ies.cause));
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_Iu_ReleaseRequest;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_Iu_ReleaseRequest;
 
-	rc = ranap_encode_iu_releaserequesties(&out, &ies);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding release request IEs: %d\n", rc);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Iu_ReleaseRequest, &out);
-		return NULL;
-	}
+	out = &pdu.choice.initiatingMessage.value.choice.Iu_ReleaseRequest;
 
-	/* encode the output into the msgb */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_Iu_ReleaseRequest,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_Iu_ReleaseRequest, &out);
+	ie = (RANAP_Iu_ReleaseRequestIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_Cause;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_Iu_ReleaseCommandIEs__value_PR_Cause;
+	ie->value.choice.Cause.present = RANAP_Cause_PR_transmissionNetwork;
+	ie->value.choice.Cause.choice.radioNetwork = RANAP_CauseTransmissionNetwork_signalling_transport_resource_failure;
 
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_Iu_ReleaseRequest, &out);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
+
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }
 
 struct msgb *ranap_new_msg_rab_rel_req(uint8_t rab_id, const RANAP_Cause_t *cause)
 {
-	RANAP_RAB_ReleaseItemIEs_t item_ies;
-	RANAP_RAB_ReleaseRequestIEs_t ies;
-	RANAP_RAB_ReleaseRequest_t out;
+	RANAP_RANAP_PDU_t pdu;
+	RANAP_RAB_ReleaseRequest_t *out;
+	RANAP_RAB_ReleaseRequestIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&item_ies, 0, sizeof(item_ies));
-	memset(&ies, 0, sizeof(ies));
-	memset(&out, 0, sizeof(out));
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* put together the ReleaseItem */
-	assign_new_ra_id(&item_ies.raB_ReleaseItem.rAB_ID, rab_id);
-	memcpy(&item_ies.raB_ReleaseItem.cause, cause, sizeof(item_ies.raB_ReleaseItem.cause));
+	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
+	pdu.choice.initiatingMessage.procedureCode = RANAP_id_RAB_ReleaseRequest;
+	pdu.choice.initiatingMessage.criticality = RANAP_Criticality_ignore;
+	pdu.choice.initiatingMessage.value.present = RANAP_InitiatingMessage__value_PR_RAB_ReleaseRequest;
 
-	/* add to the list */
-	rc = ranap_encode_rab_releaseitemies(&ies.raB_ReleaseList, &item_ies);
-	if (rc < 0)
-		return NULL;
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_ReleaseItem, &item_ies.raB_ReleaseItem);
+	out = &pdu.choice.initiatingMessage.value.choice.RAB_ReleaseRequest;
 
-	/* encoe the list IEs into the output */
-	rc = ranap_encode_rab_releaserequesties(&out, &ies);
+	ie = (RANAP_RAB_ReleaseRequestIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = RANAP_id_RAB_ReleaseList;
+	ie->criticality = RANAP_Criticality_ignore;
+	ie->value.present = RANAP_RAB_ReleaseRequestIEs__value_PR_RAB_ReleaseList;
 
-	/* 'out' has been generated, we can release the input */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_ReleaseList, &ies.raB_ReleaseList);
+	{
+        	RANAP_ProtocolIE_Container_7748P99_t *ie_container = (RANAP_ProtocolIE_Container_7748P99_t *)CALLOC(1, sizeof(*ie_container));
 
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "error encoding release request IEs: %d\n", rc);
-		return NULL;
+		for (int i = 0; i < 1; i++) {
+			RANAP_RAB_ReleaseItemIEs_t *rls_itm = (RANAP_RAB_ReleaseItemIEs_t *)CALLOC(1, sizeof(*rls_itm));
+
+			rls_itm->id = RANAP_id_RAB_ReleaseItem;
+			rls_itm->criticality = RANAP_Criticality_ignore;
+			rls_itm->value.present = RANAP_RAB_ReleaseRequestIEs__value_PR_RAB_ReleaseList;
+
+			assign_new_ra_id(&rls_itm->value.choice.RAB_ReleaseItem.rAB_ID, rab_id);
+
+			rls_itm->value.choice.RAB_ReleaseItem.cause.present = cause[i].present;
+			rls_itm->value.choice.RAB_ReleaseItem.cause.choice.radioNetwork = cause[i].present;
+
+			ASN_SEQUENCE_ADD(&(ie_container->list), rls_itm);
+		}
+
+		ASN_SEQUENCE_ADD(&(ie->value.choice.RAB_ReleaseList.list), ie_container);
 	}
 
-	/* encode the output into the msgb */
-	msg = ranap_generate_initiating_message(RANAP_ProcedureCode_id_RAB_ReleaseRequest,
-						RANAP_Criticality_reject,
-						&asn_DEF_RANAP_RAB_ReleaseRequest, &out);
+	ASN_SEQUENCE_ADD(&(out->protocolIEs.list), ie);
 
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RAB_ReleaseRequest, &out);
+	msg = _ranap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
 
 	return msg;
 }

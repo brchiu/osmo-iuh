@@ -32,7 +32,6 @@
 #include <osmocom/iuh/hnbgw.h>
 #include <osmocom/iuh/hnbgw_rua.h>
 #include <osmocom/ranap/ranap_common.h>
-#include <osmocom/ranap/ranap_ies_defs.h>
 #include <osmocom/ranap/ranap_msg_factory.h>
 
 static int ranap_tx_reset_ack(struct hnb_context *hnb,
@@ -52,40 +51,39 @@ static int ranap_tx_reset_ack(struct hnb_context *hnb,
 	return rc;
 }
 
-static int ranap_rx_init_reset(struct hnb_context *hnb, ANY_t *in)
+static int ranap_rx_init_reset(struct hnb_context *hnb, RANAP_Reset_t *in)
 {
-	RANAP_ResetIEs_t ies;
-	int rc, is_ps = 0;
+	RANAP_ResetIEs_t *ie;
+	RANAP_CN_DomainIndicator_t domain;
+	int is_ps = 0;
 
-	rc = ranap_decode_reseties(&ies, in);
-	if (rc < 0)
-		return rc;
+	RANAP_FIND_PROTOCOLIE_BY_ID(RANAP_ResetIEs_t, ie, in, RANAP_id_CN_DomainIndicator, true);
 
-	if (ies.cN_DomainIndicator == RANAP_CN_DomainIndicator_ps_domain)
-		is_ps=1;
+	domain = ie->value.choice.CN_DomainIndicator;
+	if (domain == RANAP_CN_DomainIndicator_ps_domain)
+		is_ps = 1;
+
+	RANAP_FIND_PROTOCOLIE_BY_ID(RANAP_ResetIEs_t, ie, in, RANAP_id_Cause, 1);
 
 	LOGP(DRANAP, LOGL_INFO, "Rx RESET.req(%s,%s)\n", is_ps ? "ps" : "cs",
-		ranap_cause_str(&ies.cause));
+		ranap_cause_str(&ie->value.choice.Cause));
 
 	/* FIXME: Actually we have to wait for some guard time? */
 	/* FIXME: Reset all resources related to this HNB/RNC */
-	ranap_tx_reset_ack(hnb, ies.cN_DomainIndicator);
+	ranap_tx_reset_ack(hnb, domain);
 
 	return 0;
 }
 
-static int ranap_rx_error_ind(struct hnb_context *hnb, ANY_t *in)
+static int ranap_rx_error_ind(struct hnb_context *hnb, RANAP_ErrorIndication_t *in)
 {
-	RANAP_ErrorIndicationIEs_t ies;
-	int rc;
+	RANAP_ErrorIndicationIEs_t *ie;
 
-	rc = ranap_decode_errorindicationies(&ies, in);
-	if (rc < 0)
-		return rc;
+	RANAP_FIND_PROTOCOLIE_BY_ID(RANAP_ErrorIndicationIEs_t, ie, in, RANAP_id_Cause, false);
 
-	if (ies.presenceMask & ERRORINDICATIONIES_RANAP_CAUSE_PRESENT) {
+	if (ie) {
 		LOGP(DRANAP, LOGL_ERROR, "Rx ERROR.ind(%s)\n",
-			ranap_cause_str(&ies.cause));
+			ranap_cause_str(&ie->value.choice.Cause));
 	} else
 		LOGP(DRANAP, LOGL_ERROR, "Rx ERROR.ind\n");
 
@@ -104,19 +102,19 @@ static int ranap_rx_initiating_msg(struct hnb_context *hnb, RANAP_InitiatingMess
 	 * can ignore.  In either case, it is RANAP that we need to
 	 * decode... */
 	switch (imsg->procedureCode) {
-	case RANAP_ProcedureCode_id_Reset:
+	case RANAP_id_Reset:
 		/* Reset request */
-		rc = ranap_rx_init_reset(hnb, &imsg->value);
+		rc = ranap_rx_init_reset(hnb, &imsg->value.choice.Reset);
 		break;
-	case RANAP_ProcedureCode_id_OverloadControl: /* Overload ind */
+	case RANAP_id_OverloadControl: /* Overload ind */
 		break;
-	case RANAP_ProcedureCode_id_ErrorIndication: /* Error ind */
-		rc = ranap_rx_error_ind(hnb, &imsg->value);
+	case RANAP_id_ErrorIndication: /* Error ind */
+		rc = ranap_rx_error_ind(hnb, &imsg->value.choice.ErrorIndication);
 		break;
-	case RANAP_ProcedureCode_id_ResetResource: /* request */
-	case RANAP_ProcedureCode_id_InformationTransfer:
-	case RANAP_ProcedureCode_id_DirectInformationTransfer:
-	case RANAP_ProcedureCode_id_UplinkInformationExchange:
+	case RANAP_id_ResetResource: /* request */
+	case RANAP_id_InformationTransfer:
+	case RANAP_id_DirectInformationTransfer:
+	case RANAP_id_UplinkInformationExchange:
 		LOGP(DRANAP, LOGL_NOTICE, "Received unsupported RANAP "
 		     "Procedure %lu from HNB, ignoring\n", imsg->procedureCode);
 		break;
@@ -139,12 +137,12 @@ static int ranap_rx_successful_msg(struct hnb_context *hnb, RANAP_SuccessfulOutc
 	 * can ignore.  In either case, it is RANAP that we need to
 	 * decode... */
 	switch (imsg->procedureCode) {
-	case RANAP_ProcedureCode_id_Reset: /* Reset acknowledge */
+	case RANAP_id_Reset: /* Reset acknowledge */
 		break;
-	case RANAP_ProcedureCode_id_ResetResource: /* response */
-	case RANAP_ProcedureCode_id_InformationTransfer:
-	case RANAP_ProcedureCode_id_DirectInformationTransfer:
-	case RANAP_ProcedureCode_id_UplinkInformationExchange:
+	case RANAP_id_ResetResource: /* response */
+	case RANAP_id_InformationTransfer:
+	case RANAP_id_DirectInformationTransfer:
+	case RANAP_id_UplinkInformationExchange:
 		LOGP(DRANAP, LOGL_NOTICE, "Received unsupported RANAP "
 		     "Procedure %lu from HNB, ignoring\n", imsg->procedureCode);
 		break;

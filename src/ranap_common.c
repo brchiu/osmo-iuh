@@ -39,53 +39,53 @@ const struct value_string ranap_presence_vals[5] = {
 };
 
 const struct value_string ranap_procedure_code_vals[48] = {
-	{ RANAP_ProcedureCode_id_RAB_Assignment,		"RAB Assignment" },
-	{ RANAP_ProcedureCode_id_Iu_Release,			"Iu Release" },
-	{ RANAP_ProcedureCode_id_RelocationPreparation,		"Relocation Preparation" },
-	{ RANAP_ProcedureCode_id_RelocationResourceAllocation,	"Relocation Resource Allocation" },
-	{ RANAP_ProcedureCode_id_RelocationCancel,		"Relocation Cancel" },
-	{ RANAP_ProcedureCode_id_SRNS_ContextTransfer,		"SRNS Context Transfer" },
-	{ RANAP_ProcedureCode_id_SecurityModeControl,		"Security Mode Control" },
-	{ RANAP_ProcedureCode_id_DataVolumeReport,		"Data Volume Report" },
-	{ RANAP_ProcedureCode_id_Reset,				"Reset" },
-	{ RANAP_ProcedureCode_id_RAB_ReleaseRequest,		"RAB Release Request" },
-	{ RANAP_ProcedureCode_id_Iu_ReleaseRequest,		"Iu Release Request" },
-	{ RANAP_ProcedureCode_id_RelocationDetect,		"Relocation Detect" },
-	{ RANAP_ProcedureCode_id_RelocationComplete,		"Relocation Complete" },
-	{ RANAP_ProcedureCode_id_Paging,			"Paging" },
-	{ RANAP_ProcedureCode_id_CommonID,			"Common ID" },
-	{ RANAP_ProcedureCode_id_CN_InvokeTrace,		"CN Invoke Trace" },
-	{ RANAP_ProcedureCode_id_LocationReportingControl,	"Location Reporting Control" },
-	{ RANAP_ProcedureCode_id_LocationReport,		"Location Report" },
-	{ RANAP_ProcedureCode_id_InitialUE_Message,		"Initial UE Message" },
-	{ RANAP_ProcedureCode_id_DirectTransfer,		"Direct Transfer" },
-	{ RANAP_ProcedureCode_id_OverloadControl,		"Overload Control" },
-	{ RANAP_ProcedureCode_id_ErrorIndication,		"Error Indication" },
-	{ RANAP_ProcedureCode_id_SRNS_DataForward,		"SRNS Data Forward" },
-	{ RANAP_ProcedureCode_id_ForwardSRNS_Context,		"Forward SRNS Context" },
-	{ RANAP_ProcedureCode_id_privateMessage,		"Private Message" },
-	{ RANAP_ProcedureCode_id_CN_DeactivateTrace,		"CN Deactivate Trace" },
-	{ RANAP_ProcedureCode_id_ResetResource,			"Reset Resource" },
-	{ RANAP_ProcedureCode_id_RANAP_Relocation,		"RANAP Relocation" },
-	{ RANAP_ProcedureCode_id_RAB_ModifyRequest,		"RAB Modify Request" },
-	{ RANAP_ProcedureCode_id_LocationRelatedData,		"Location Related Data" },
-	{ RANAP_ProcedureCode_id_InformationTransfer,		"Information Transfer" },
-	{ RANAP_ProcedureCode_id_UESpecificInformation,		"UE Specific Information" },
-	{ RANAP_ProcedureCode_id_UplinkInformationExchange,	"Uplink Information Transfer" },
-	{ RANAP_ProcedureCode_id_DirectInformationTransfer,	"Direct Information Transfer" },
-	{ RANAP_ProcedureCode_id_MBMSSessionStart,		"MBMS Session Start" },
-	{ RANAP_ProcedureCode_id_MBMSSessionUpdate,		"MBMS Session Update" },
-	{ RANAP_ProcedureCode_id_MBMSSessionStop,		"MBMS Session Stop" },
-	{ RANAP_ProcedureCode_id_MBMSUELinking,			"MBMS UE Linking" },
-	{ RANAP_ProcedureCode_id_MBMSRegistration,		"MBMS Registration" },
-	{ RANAP_ProcedureCode_id_MBMSCNDe_Registration_Procedure, "MBMS CN De-Registration" },
-	{ RANAP_ProcedureCode_id_MBMSRABEstablishmentIndication,  "MBMS RAB Establishment Indication" },
-	{ RANAP_ProcedureCode_id_MBMSRABRelease,		"MBMS RAB Release" },
-	{ RANAP_ProcedureCode_id_enhancedRelocationComplete,	"Enhanced Relocation Complete" },
-	{ RANAP_ProcedureCode_id_enhancedRelocationCompleteConfirm, "Enhanced Relocation Complete Confirm" },
-	{ RANAP_ProcedureCode_id_RANAPenhancedRelocation,	"RANAP Enhanced Relocation" },
-	{ RANAP_ProcedureCode_id_SRVCCPreparation,		"SRVCC Preparation" },
-	{ RANAP_ProcedureCode_id_UeRadioCapabilityMatch,	"UE Radio Capability Match" },
+	{ RANAP_id_RAB_Assignment,		"RAB Assignment" },
+	{ RANAP_id_Iu_Release,			"Iu Release" },
+	{ RANAP_id_RelocationPreparation,		"Relocation Preparation" },
+	{ RANAP_id_RelocationResourceAllocation,	"Relocation Resource Allocation" },
+	{ RANAP_id_RelocationCancel,		"Relocation Cancel" },
+	{ RANAP_id_SRNS_ContextTransfer,		"SRNS Context Transfer" },
+	{ RANAP_id_SecurityModeControl,		"Security Mode Control" },
+	{ RANAP_id_DataVolumeReport,		"Data Volume Report" },
+	{ RANAP_id_Reset,				"Reset" },
+	{ RANAP_id_RAB_ReleaseRequest,		"RAB Release Request" },
+	{ RANAP_id_Iu_ReleaseRequest,		"Iu Release Request" },
+	{ RANAP_id_RelocationDetect,		"Relocation Detect" },
+	{ RANAP_id_RelocationComplete,		"Relocation Complete" },
+	{ RANAP_id_Paging,			"Paging" },
+	{ RANAP_id_CommonID,			"Common ID" },
+	{ RANAP_id_CN_InvokeTrace,		"CN Invoke Trace" },
+	{ RANAP_id_LocationReportingControl,	"Location Reporting Control" },
+	{ RANAP_id_LocationReport,		"Location Report" },
+	{ RANAP_id_InitialUE_Message,		"Initial UE Message" },
+	{ RANAP_id_DirectTransfer,		"Direct Transfer" },
+	{ RANAP_id_OverloadControl,		"Overload Control" },
+	{ RANAP_id_ErrorIndication,		"Error Indication" },
+	{ RANAP_id_SRNS_DataForward,		"SRNS Data Forward" },
+	{ RANAP_id_ForwardSRNS_Context,		"Forward SRNS Context" },
+	{ RANAP_id_privateMessage,		"Private Message" },
+	{ RANAP_id_CN_DeactivateTrace,		"CN Deactivate Trace" },
+	{ RANAP_id_ResetResource,			"Reset Resource" },
+	{ RANAP_id_RANAP_Relocation,		"RANAP Relocation" },
+	{ RANAP_id_RAB_ModifyRequest,		"RAB Modify Request" },
+	{ RANAP_id_LocationRelatedData,		"Location Related Data" },
+	{ RANAP_id_InformationTransfer,		"Information Transfer" },
+	{ RANAP_id_UESpecificInformation,		"UE Specific Information" },
+	{ RANAP_id_UplinkInformationExchange,	"Uplink Information Transfer" },
+	{ RANAP_id_DirectInformationTransfer,	"Direct Information Transfer" },
+	{ RANAP_id_MBMSSessionStart,		"MBMS Session Start" },
+	{ RANAP_id_MBMSSessionUpdate,		"MBMS Session Update" },
+	{ RANAP_id_MBMSSessionStop,		"MBMS Session Stop" },
+	{ RANAP_id_MBMSUELinking,			"MBMS UE Linking" },
+	{ RANAP_id_MBMSRegistration,		"MBMS Registration" },
+	{ RANAP_id_MBMSCNDe_Registration_Procedure, "MBMS CN De-Registration" },
+	{ RANAP_id_MBMSRABEstablishmentIndication,  "MBMS RAB Establishment Indication" },
+	{ RANAP_id_MBMSRABRelease,		"MBMS RAB Release" },
+	{ RANAP_id_enhancedRelocationComplete,	"Enhanced Relocation Complete" },
+	{ RANAP_id_enhancedRelocationCompleteConfirm, "Enhanced Relocation Complete Confirm" },
+	{ RANAP_id_RANAPenhancedRelocation,	"RANAP Enhanced Relocation" },
+	{ RANAP_id_SRVCCPreparation,		"SRVCC Preparation" },
+	{ RANAP_id_UeRadioCapabilityMatch,	"UE Radio Capability Match" },
 	{ 0, NULL }
 };
 
@@ -295,7 +295,7 @@ static struct msgb *ranap_msgb_alloc(void)
 	return msgb_alloc_headroom(1024+512, 512, "RANAP Tx");
 }
 
-static struct msgb *_ranap_gen_msg(RANAP_RANAP_PDU_t *pdu)
+struct msgb *_ranap_gen_msg(RANAP_RANAP_PDU_t *pdu)
 {
 	struct msgb *msg = ranap_msgb_alloc();
 	asn_enc_rval_t rval;
@@ -303,7 +303,7 @@ static struct msgb *_ranap_gen_msg(RANAP_RANAP_PDU_t *pdu)
 	if (!msg)
 		return NULL;
 
-	rval = aper_encode_to_buffer(&asn_DEF_RANAP_RANAP_PDU, pdu,
+	rval = aper_encode_to_buffer(&asn_DEF_RANAP_RANAP_PDU, NULL, pdu,
 				       msg->data, msgb_tailroom(msg));
 	if (rval.encoded < 0) {
 		LOGP(DRANAP, LOGL_ERROR, "Error encoding type: %s\n",
@@ -314,185 +314,6 @@ static struct msgb *_ranap_gen_msg(RANAP_RANAP_PDU_t *pdu)
 	msgb_put(msg, rval.encoded/8);
 
 	return msg;
-}
-
-struct msgb *ranap_generate_initiating_message(e_RANAP_ProcedureCode procedureCode,
-					  RANAP_Criticality_t criticality,
-					  asn_TYPE_descriptor_t *td, void *sptr)
-{
-	RANAP_RANAP_PDU_t pdu;
-	struct msgb *msg;
-	int rc;
-
-	memset(&pdu, 0, sizeof(pdu));
-
-	pdu.present = RANAP_RANAP_PDU_PR_initiatingMessage;
-	pdu.choice.initiatingMessage.procedureCode = procedureCode;
-	pdu.choice.initiatingMessage.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.initiatingMessage.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _ranap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
-
-	return msg;
-}
-
-struct msgb *ranap_generate_successful_outcome(
-					   e_RANAP_ProcedureCode procedureCode,
-					   RANAP_Criticality_t criticality,
-					   asn_TYPE_descriptor_t * td,
-					   void *sptr)
-{
-	RANAP_RANAP_PDU_t pdu;
-	struct msgb *msg;
-	int rc;
-
-	memset(&pdu, 0, sizeof(pdu));
-
-	pdu.present = RANAP_RANAP_PDU_PR_successfulOutcome;
-	pdu.choice.successfulOutcome.procedureCode = procedureCode;
-	pdu.choice.successfulOutcome.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.successfulOutcome.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _ranap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
-
-	return msg;
-}
-
-struct msgb *ranap_generate_unsuccessful_outcome(
-					e_RANAP_ProcedureCode procedureCode,
-					RANAP_Criticality_t criticality,
-					asn_TYPE_descriptor_t * td,
-					void *sptr)
-{
-	RANAP_RANAP_PDU_t pdu;
-	struct msgb *msg;
-	int rc;
-
-	memset(&pdu, 0, sizeof(pdu));
-
-	pdu.present = RANAP_RANAP_PDU_PR_unsuccessfulOutcome;
-	pdu.choice.unsuccessfulOutcome.procedureCode = procedureCode;
-	pdu.choice.unsuccessfulOutcome.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.unsuccessfulOutcome.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _ranap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
-
-	return msg;
-}
-
-struct msgb *ranap_generate_outcome(
-				e_RANAP_ProcedureCode procedureCode,
-				RANAP_Criticality_t criticality,
-				asn_TYPE_descriptor_t * td,
-				void *sptr)
-{
-	RANAP_RANAP_PDU_t pdu;
-	struct msgb *msg;
-	int rc;
-
-	memset(&pdu, 0, sizeof(pdu));
-
-	pdu.present = RANAP_RANAP_PDU_PR_outcome;
-	pdu.choice.outcome.procedureCode = procedureCode;
-	pdu.choice.outcome.criticality = criticality;
-	rc = ANY_fromType_aper(&pdu.choice.outcome.value, td, sptr);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		return NULL;
-	}
-
-	msg = _ranap_gen_msg(&pdu);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_RANAP_RANAP_PDU, &pdu);
-
-	return msg;
-}
-
-
-RANAP_IE_t *ranap_new_ie(RANAP_ProtocolIE_ID_t id,
-			 RANAP_Criticality_t criticality,
-			 asn_TYPE_descriptor_t * type, void *sptr)
-{
-	RANAP_IE_t *buff;
-	int rc;
-
-	if ((buff = CALLOC(1, sizeof(*buff))) == NULL) {
-		// Possible error on malloc
-		return NULL;
-	}
-
-	buff->id = id;
-	buff->criticality = criticality;
-
-	rc = ANY_fromType_aper(&buff->value, type, sptr);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		FREEMEM(buff);
-		return NULL;
-	}
-
-	if (asn1_xer_print)
-		if (xer_fprint(stdout, &asn_DEF_RANAP_IE, buff) < 0) {
-			FREEMEM(buff);
-			return NULL;
-		}
-
-	return buff;
-}
-
-RANAP_ProtocolIE_FieldPair_t *ranap_new_ie_pair(RANAP_ProtocolIE_ID_t id,
-				RANAP_Criticality_t criticality1,
-				asn_TYPE_descriptor_t *type1, void *sptr1,
-				RANAP_Criticality_t criticality2,
-				asn_TYPE_descriptor_t *type2, void *sptr2)
-{
-	RANAP_ProtocolIE_FieldPair_t *buff;
-	int rc;
-
-	if ((buff = CALLOC(1, sizeof(*buff))) == NULL) {
-		// Possible error on malloc
-		return NULL;
-	}
-
-	buff->id = id;
-	buff->firstCriticality = criticality1;
-	buff->secondCriticality = criticality2;
-
-	rc = ANY_fromType_aper(&buff->firstValue, type1, sptr1);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		FREEMEM(buff);
-		return NULL;
-	}
-
-	rc = ANY_fromType_aper(&buff->secondValue, type2, sptr2);
-	if (rc < 0) {
-		LOGP(DRANAP, LOGL_ERROR, "Error in ANY_fromType_aper\n");
-		ASN_STRUCT_FREE(asn_DEF_RANAP_ProtocolIE_FieldPair, buff);
-		return NULL;
-	}
-
-	if (asn1_xer_print)
-		if (xer_fprint(stdout, &asn_DEF_RANAP_ProtocolIE_FieldPair, buff) < 0) {
-			ASN_STRUCT_FREE(asn_DEF_RANAP_ProtocolIE_FieldPair, buff);
-			return NULL;
-		}
-
-	return buff;
 }
 
 int ranap_parse_lai(struct gprs_ra_id *ra_id, const RANAP_LAI_t *lai)
@@ -506,7 +327,7 @@ int ranap_parse_lai(struct gprs_ra_id *ra_id, const RANAP_LAI_t *lai)
 	/* TS 25.413 9.2.3.55 */
 	if (lai->pLMNidentity.size != 3) {
 		LOGP(DRANAP, LOGL_ERROR, "Invalid PLMN Identity size:"
-		     " should be 3, is %d\n", lai->pLMNidentity.size);
+		     " should be 3, is %ld\n", lai->pLMNidentity.size);
 		return -1;
 	}
 
@@ -520,7 +341,7 @@ int ranap_parse_lai(struct gprs_ra_id *ra_id, const RANAP_LAI_t *lai)
 
 	if (lai->lAC.size != 2) {
 		LOGP(DRANAP, LOGL_ERROR, "Invalid LAC size:"
-		     " should be 2, is %d\n", lai->lAC.size);
+		     " should be 2, is %ld\n", lai->lAC.size);
 		return -1;
 	}
 
@@ -555,29 +376,5 @@ int ranap_ip_from_transp_layer_addr(const BIT_STRING_t *in, uint32_t *ip)
 
 	return 0;
 
-}
-
-int ranap_decode_rab_setupormodifieditemies_fromlist(
-		RANAP_RAB_SetupOrModifiedItemIEs_t *raB_SetupOrModifiedItemIEs,
-		ANY_t *any_p) {
-
-	RANAP_RAB_SetupOrModifiedItem_t *ranaP_RABSetupOrModifiedItem_p = NULL;
-	int decoded = 0;
-	assert(any_p != NULL);
-	assert(raB_SetupOrModifiedItemIEs != NULL);
-
-	memset(raB_SetupOrModifiedItemIEs, 0, sizeof(RANAP_RAB_SetupOrModifiedItemIEs_t));
-	RANAP_DEBUG("Decoding message RANAP_RAB_SetupOrModifiedItemIEs (%s:%d)\n", __FILE__, __LINE__);
-	decoded = ANY_to_type_aper(any_p, &asn_DEF_RANAP_RAB_SetupOrModifiedItem, (void**)&ranaP_RABSetupOrModifiedItem_p);
-	if (decoded < 0) {
-		RANAP_DEBUG("Decoding of IE raB_SetupOrModifiedItem failed\n");
-		return -1;
-	}
-	if (asn1_xer_print)
-		xer_fprint(stdout, &asn_DEF_RANAP_RAB_SetupOrModifiedItem, ranaP_RABSetupOrModifiedItem_p);
-	memcpy(&raB_SetupOrModifiedItemIEs->raB_SetupOrModifiedItem, ranaP_RABSetupOrModifiedItem_p, sizeof(RANAP_RAB_SetupOrModifiedItem_t));
-	FREEMEM(ranaP_RABSetupOrModifiedItem_p);
-
-	return decoded;
 }
 

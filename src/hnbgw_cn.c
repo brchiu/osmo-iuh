@@ -31,7 +31,8 @@
 
 #include <osmocom/iuh/hnbgw.h>
 #include <osmocom/iuh/hnbgw_rua.h>
-#include <osmocom/ranap/ranap_ies_defs.h>
+
+#include <osmocom/ranap/ranap_common.h>
 #include <osmocom/ranap/ranap_msg_factory.h>
 #include <osmocom/iuh/context_map.h>
 
@@ -94,44 +95,28 @@ void hnbgw_cnlink_change_state(struct hnbgw_cnlink *cnlink, enum hnbgw_cnlink_st
  ***********************************************************************/
 
 static int cn_ranap_rx_reset_cmd(struct hnbgw_cnlink *cnlink,
-				 RANAP_InitiatingMessage_t *imsg)
+				 RANAP_Reset_t *in)
 {
-	RANAP_ResetIEs_t ies;
-	int rc;
-
-	rc = ranap_decode_reseties(&ies, &imsg->value);
 	/* FIXME: reset resources and return reset ack */
 
-	ranap_free_reseties(&ies);
-	return rc;
+	return 0;
 }
 
 static int cn_ranap_rx_reset_ack(struct hnbgw_cnlink *cnlink,
-				 RANAP_SuccessfulOutcome_t *omsg)
+				 RANAP_ResetAcknowledge_t *in)
 {
-	RANAP_ResetAcknowledgeIEs_t ies;
-	int rc;
-
-	rc = ranap_decode_resetacknowledgeies(&ies, &omsg->value);
-
 	hnbgw_cnlink_change_state(cnlink, CNLINK_S_EST_ACTIVE);
 
-	ranap_free_resetacknowledgeies(&ies);
-	return rc;
+	return 0;
 }
 
 static int cn_ranap_rx_paging_cmd(struct hnbgw_cnlink *cnlink,
-				  RANAP_InitiatingMessage_t *imsg,
+				  RANAP_Paging_t *in,
 				  const uint8_t *data, unsigned int len)
 {
 	struct hnb_gw *gw = cnlink->gw;
 	struct hnb_context *hnb;
-	RANAP_PagingIEs_t ies;
-	int rc;
-
-	rc = ranap_decode_pagingies(&ies, &imsg->value);
-	if (rc < 0)
-		return rc;
+	int rc = 0;
 
 	/* FIXME: determine which HNBs to send this Paging command,
 	 * rather than broadcasting to all HNBs */
@@ -139,8 +124,7 @@ static int cn_ranap_rx_paging_cmd(struct hnbgw_cnlink *cnlink,
 		rc = rua_tx_udt(hnb, data, len);
 	}
 
-	ranap_free_pagingies(&ies);
-	return 0;
+	return rc;
 }
 
 static int cn_ranap_rx_initiating_msg(struct hnbgw_cnlink *cnlink,
@@ -148,18 +132,18 @@ static int cn_ranap_rx_initiating_msg(struct hnbgw_cnlink *cnlink,
 				      const uint8_t *data, unsigned int len)
 {
 	switch (imsg->procedureCode) {
-	case RANAP_ProcedureCode_id_Reset:
-		return cn_ranap_rx_reset_cmd(cnlink, imsg);
-	case RANAP_ProcedureCode_id_Paging:
-		return cn_ranap_rx_paging_cmd(cnlink, imsg, data, len);
-	case RANAP_ProcedureCode_id_OverloadControl: /* Overload ind */
+	case RANAP_id_Reset:
+		return cn_ranap_rx_reset_cmd(cnlink, &imsg->value.choice.Reset);
+	case RANAP_id_Paging:
+		return cn_ranap_rx_paging_cmd(cnlink, &imsg->value.choice.Paging, data, len);
+	case RANAP_id_OverloadControl: /* Overload ind */
 		break;
-	case RANAP_ProcedureCode_id_ErrorIndication: /* Error ind */
+	case RANAP_id_ErrorIndication: /* Error ind */
 		break;
-	case RANAP_ProcedureCode_id_ResetResource: /* request */
-	case RANAP_ProcedureCode_id_InformationTransfer:
-	case RANAP_ProcedureCode_id_DirectInformationTransfer:
-	case RANAP_ProcedureCode_id_UplinkInformationExchange:
+	case RANAP_id_ResetResource: /* request */
+	case RANAP_id_InformationTransfer:
+	case RANAP_id_DirectInformationTransfer:
+	case RANAP_id_UplinkInformationExchange:
 		LOGP(DRANAP, LOGL_NOTICE, "Received unsupported RANAP "
 		     "Procedure %ld from CN, ignoring\n", imsg->procedureCode);
 		break;
@@ -175,12 +159,12 @@ static int cn_ranap_rx_successful_msg(struct hnbgw_cnlink *cnlink,
 					RANAP_SuccessfulOutcome_t *omsg)
 {
 	switch (omsg->procedureCode) {
-	case RANAP_ProcedureCode_id_Reset: /* Reset acknowledge */
-		return cn_ranap_rx_reset_ack(cnlink, omsg);
-	case RANAP_ProcedureCode_id_ResetResource: /* response */
-	case RANAP_ProcedureCode_id_InformationTransfer:
-	case RANAP_ProcedureCode_id_DirectInformationTransfer:
-	case RANAP_ProcedureCode_id_UplinkInformationExchange:
+	case RANAP_id_Reset: /* Reset acknowledge */
+		return cn_ranap_rx_reset_ack(cnlink, &omsg->value.choice.ResetAcknowledge);
+	case RANAP_id_ResetResource: /* response */
+	case RANAP_id_InformationTransfer:
+	case RANAP_id_DirectInformationTransfer:
+	case RANAP_id_UplinkInformationExchange:
 		LOGP(DRANAP, LOGL_NOTICE, "Received unsupported RANAP "
 		     "Procedure %ld from CN, ignoring\n", omsg->procedureCode);
 		break;

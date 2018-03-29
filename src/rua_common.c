@@ -103,7 +103,7 @@ static struct msgb *rua_msgb_alloc(void)
 	return msgb_alloc(1024, "RUA Tx");
 }
 
-static struct msgb *_rua_gen_msg(RUA_RUA_PDU_t *pdu)
+struct msgb *_rua_gen_msg(RUA_RUA_PDU_t *pdu)
 {
 	struct msgb *msg = rua_msgb_alloc();
 	asn_enc_rval_t rval;
@@ -111,7 +111,7 @@ static struct msgb *_rua_gen_msg(RUA_RUA_PDU_t *pdu)
 	if (!msg)
 		return NULL;
 
-	rval = aper_encode_to_buffer(&asn_DEF_RUA_RUA_PDU, pdu,
+	rval = aper_encode_to_buffer(&asn_DEF_RUA_RUA_PDU, NULL, pdu,
 				       msg->data, msgb_tailroom(msg));
 	if (rval.encoded < 0) {
 		LOGP(DRUA, LOGL_ERROR, "Error encoding type: %s\n",
@@ -124,9 +124,9 @@ static struct msgb *_rua_gen_msg(RUA_RUA_PDU_t *pdu)
 	return msg;
 }
 
-
+#if 0
 struct msgb *rua_generate_initiating_message(
-					e_RUA_ProcedureCode procedureCode,
+					RUA_ProcedureCode_t procedureCode,
 					RUA_Criticality_t criticality,
 					asn_TYPE_descriptor_t * td, void *sptr)
 {
@@ -148,7 +148,7 @@ struct msgb *rua_generate_initiating_message(
 }
 
 struct msgb *rua_generate_successful_outcome(
-					   e_RUA_ProcedureCode procedureCode,
+					   RUA_ProcedureCode_t procedureCode,
 					   RUA_Criticality_t criticality,
 					   asn_TYPE_descriptor_t * td,
 					   void *sptr)
@@ -171,7 +171,7 @@ struct msgb *rua_generate_successful_outcome(
 }
 
 struct msgb *rua_generate_unsuccessful_outcome(
-					   e_RUA_ProcedureCode procedureCode,
+					   RUA_ProcedureCode_t procedureCode,
 					   RUA_Criticality_t criticality,
 					   asn_TYPE_descriptor_t * td,
 					   void *sptr)
@@ -224,3 +224,4 @@ RUA_IE_t *rua_new_ie(RUA_ProtocolIE_ID_t id,
 
 	return buff;
 }
+#endif

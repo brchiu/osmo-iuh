@@ -1,0 +1,336 @@
+ASN_MODULE_SRCS=	\
+	HNBAP-PDU.c	\
+	InitiatingMessage.c	\
+	SuccessfulOutcome.c	\
+	UnsuccessfulOutcome.c	\
+	HNBRegisterRequest.c	\
+	HNBRegisterAccept.c	\
+	HNBRegisterReject.c	\
+	HNBDe-Register.c	\
+	UERegisterRequest.c	\
+	UERegisterAccept.c	\
+	UERegisterReject.c	\
+	UEDe-Register.c	\
+	CSGMembershipUpdate.c	\
+	TNLUpdateRequest.c	\
+	TNLUpdateResponse.c	\
+	TNLUpdateFailure.c	\
+	HNBConfigTransferRequest.c	\
+	HNBConfigTransferResponse.c	\
+	RelocationComplete.c	\
+	ErrorIndication.c	\
+	PrivateMessage.c	\
+	U-RNTIQueryRequest.c	\
+	U-RNTIQueryResponse.c	\
+	Access-stratum-release-indicator.c	\
+	AccessResult.c	\
+	AltitudeAndDirection.c	\
+	BackoffTimer.c	\
+	BindingID.c	\
+	Cause.c	\
+	CauseRadioNetwork.c	\
+	CauseTransport.c	\
+	CauseProtocol.c	\
+	CauseMisc.c	\
+	CellIdentity.c	\
+	CELL-FACHMobilitySupport.c	\
+	Context-ID.c	\
+	CriticalityDiagnostics.c	\
+	CriticalityDiagnostics-IE-List.c	\
+	CSG-ID.c	\
+	CSG-Capability.c	\
+	CSGMembershipStatus.c	\
+	CGI.c	\
+	CI.c	\
+	CN-DomainIndicator.c	\
+	ESN.c	\
+	GeographicalLocation.c	\
+	GeographicalCoordinates.c	\
+	GTP-TEI.c	\
+	HNBCapacity.c	\
+	HNB-Cell-Access-Mode.c	\
+	HNB-Cell-Identifier.c	\
+	HNB-GWResponse.c	\
+	HNB-RNL-Identity.c	\
+	HNBConfigInfo.c	\
+	ConfigurationInformation.c	\
+	HNBConfigurationInformationProvided.c	\
+	HNBConfigurationInformationMissing.c	\
+	HNB-Location-Information.c	\
+	HNB-Identity.c	\
+	HNB-Identity-Info.c	\
+	IMEI.c	\
+	IMSI.c	\
+	IMSIDS41.c	\
+	IMSIESN.c	\
+	IP-Address.c	\
+	Ipv4Address.c	\
+	Ipv6Address.c	\
+	Iurh-Signalling-TNL-AddressList.c	\
+	LAC.c	\
+	LAI.c	\
+	MacroCoverageInformation.c	\
+	MacroCellID.c	\
+	MuxPortNumber.c	\
+	NeighbourCellIdentityList.c	\
+	NeighbourIdentity.c	\
+	NeighbourInfoList.c	\
+	AdditionalNeighbourInfoList.c	\
+	NeighbourInfoRequestList.c	\
+	NeighbourInfoRequestItem.c	\
+	PLMNidentity.c	\
+	PSC.c	\
+	PTMSI.c	\
+	PTMSIRAI.c	\
+	RAB-ID.c	\
+	RABList.c	\
+	RABListItem.c	\
+	RAC.c	\
+	RAI.c	\
+	Registration-Cause.c	\
+	RNC-ID.c	\
+	SAC.c	\
+	S-RNTIPrefix.c	\
+	TMSILAI.c	\
+	TMSIDS41.c	\
+	TransportInfo.c	\
+	TransportLayerAddress.c	\
+	Tunnel-Information.c	\
+	TypeOfError.c	\
+	UDP-Port-Number.c	\
+	UE-Capabilities.c	\
+	UTRANCellID.c	\
+	UE-Identity.c	\
+	Update-cause.c	\
+	URAIdentityList.c	\
+	URAIdentity.c	\
+	U-RNTI.c	\
+	UnknownU-RNTIIndication.c	\
+	Criticality.c	\
+	Presence.c	\
+	PrivateIE-ID.c	\
+	ProcedureCode.c	\
+	ProtocolIE-ID.c	\
+	TriggeringMessage.c	\
+	ProtocolIE-Container.c	\
+	ProtocolIE-Single-Container.c	\
+	ProtocolIE-Field.c	\
+	ProtocolIE-ContainerList.c	\
+	ProtocolExtensionContainer.c	\
+	ProtocolExtensionField.c	\
+	PrivateIE-Container.c	\
+	PrivateIE-Field.c
+
+ASN_MODULE_HDRS=	\
+	HNBAP-PDU.h	\
+	InitiatingMessage.h	\
+	SuccessfulOutcome.h	\
+	UnsuccessfulOutcome.h	\
+	HNBRegisterRequest.h	\
+	HNBRegisterAccept.h	\
+	HNBRegisterReject.h	\
+	HNBDe-Register.h	\
+	UERegisterRequest.h	\
+	UERegisterAccept.h	\
+	UERegisterReject.h	\
+	UEDe-Register.h	\
+	CSGMembershipUpdate.h	\
+	TNLUpdateRequest.h	\
+	TNLUpdateResponse.h	\
+	TNLUpdateFailure.h	\
+	HNBConfigTransferRequest.h	\
+	HNBConfigTransferResponse.h	\
+	RelocationComplete.h	\
+	ErrorIndication.h	\
+	PrivateMessage.h	\
+	U-RNTIQueryRequest.h	\
+	U-RNTIQueryResponse.h	\
+	Access-stratum-release-indicator.h	\
+	AccessResult.h	\
+	AltitudeAndDirection.h	\
+	BackoffTimer.h	\
+	BindingID.h	\
+	Cause.h	\
+	CauseRadioNetwork.h	\
+	CauseTransport.h	\
+	CauseProtocol.h	\
+	CauseMisc.h	\
+	CellIdentity.h	\
+	CELL-FACHMobilitySupport.h	\
+	Context-ID.h	\
+	CriticalityDiagnostics.h	\
+	CriticalityDiagnostics-IE-List.h	\
+	CSG-ID.h	\
+	CSG-Capability.h	\
+	CSGMembershipStatus.h	\
+	CGI.h	\
+	CI.h	\
+	CN-DomainIndicator.h	\
+	ESN.h	\
+	GeographicalLocation.h	\
+	GeographicalCoordinates.h	\
+	GTP-TEI.h	\
+	HNBCapacity.h	\
+	HNB-Cell-Access-Mode.h	\
+	HNB-Cell-Identifier.h	\
+	HNB-GWResponse.h	\
+	HNB-RNL-Identity.h	\
+	HNBConfigInfo.h	\
+	ConfigurationInformation.h	\
+	HNBConfigurationInformationProvided.h	\
+	HNBConfigurationInformationMissing.h	\
+	HNB-Location-Information.h	\
+	HNB-Identity.h	\
+	HNB-Identity-Info.h	\
+	IMEI.h	\
+	IMSI.h	\
+	IMSIDS41.h	\
+	IMSIESN.h	\
+	IP-Address.h	\
+	Ipv4Address.h	\
+	Ipv6Address.h	\
+	Iurh-Signalling-TNL-AddressList.h	\
+	LAC.h	\
+	LAI.h	\
+	MacroCoverageInformation.h	\
+	MacroCellID.h	\
+	MuxPortNumber.h	\
+	NeighbourCellIdentityList.h	\
+	NeighbourIdentity.h	\
+	NeighbourInfoList.h	\
+	AdditionalNeighbourInfoList.h	\
+	NeighbourInfoRequestList.h	\
+	NeighbourInfoRequestItem.h	\
+	PLMNidentity.h	\
+	PSC.h	\
+	PTMSI.h	\
+	PTMSIRAI.h	\
+	RAB-ID.h	\
+	RABList.h	\
+	RABListItem.h	\
+	RAC.h	\
+	RAI.h	\
+	Registration-Cause.h	\
+	RNC-ID.h	\
+	SAC.h	\
+	S-RNTIPrefix.h	\
+	TMSILAI.h	\
+	TMSIDS41.h	\
+	TransportInfo.h	\
+	TransportLayerAddress.h	\
+	Tunnel-Information.h	\
+	TypeOfError.h	\
+	UDP-Port-Number.h	\
+	UE-Capabilities.h	\
+	UTRANCellID.h	\
+	UE-Identity.h	\
+	Update-cause.h	\
+	URAIdentityList.h	\
+	URAIdentity.h	\
+	U-RNTI.h	\
+	UnknownU-RNTIIndication.h	\
+	Criticality.h	\
+	Presence.h	\
+	PrivateIE-ID.h	\
+	ProcedureCode.h	\
+	ProtocolIE-ID.h	\
+	TriggeringMessage.h	\
+	ProtocolIE-Container.h	\
+	ProtocolIE-Single-Container.h	\
+	ProtocolIE-Field.h	\
+	ProtocolIE-ContainerList.h	\
+	ProtocolExtensionContainer.h	\
+	ProtocolExtensionField.h	\
+	PrivateIE-Container.h	\
+	PrivateIE-Field.h
+
+ASN_MODULE_HDRS+=ANY.h
+ASN_MODULE_SRCS+=ANY.c
+ASN_MODULE_HDRS+=OCTET_STRING.h
+ASN_MODULE_HDRS+=OPEN_TYPE.h
+ASN_MODULE_SRCS+=OPEN_TYPE.c
+ASN_MODULE_HDRS+=constr_CHOICE.h
+ASN_MODULE_HDRS+=INTEGER.h
+ASN_MODULE_SRCS+=INTEGER.c
+ASN_MODULE_HDRS+=NativeEnumerated.h
+ASN_MODULE_SRCS+=NativeEnumerated.c
+ASN_MODULE_HDRS+=NativeInteger.h
+ASN_MODULE_SRCS+=NativeInteger.c
+ASN_MODULE_HDRS+=OBJECT_IDENTIFIER.h
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER.c
+ASN_MODULE_HDRS+=asn_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=asn_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=asn_SET_OF.h
+ASN_MODULE_SRCS+=asn_SET_OF.c
+ASN_MODULE_SRCS+=constr_CHOICE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE.h
+ASN_MODULE_SRCS+=constr_SEQUENCE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=constr_SET_OF.h
+ASN_MODULE_SRCS+=constr_SET_OF.c
+ASN_MODULE_HDRS+=asn_application.h
+ASN_MODULE_SRCS+=asn_application.c
+ASN_MODULE_HDRS+=asn_ioc.h
+ASN_MODULE_HDRS+=asn_system.h
+ASN_MODULE_HDRS+=asn_codecs.h
+ASN_MODULE_HDRS+=asn_internal.h
+ASN_MODULE_SRCS+=asn_internal.c
+ASN_MODULE_HDRS+=asn_random_fill.h
+ASN_MODULE_SRCS+=asn_random_fill.c
+ASN_MODULE_HDRS+=asn_bit_data.h
+ASN_MODULE_SRCS+=asn_bit_data.c
+ASN_MODULE_SRCS+=OCTET_STRING.c
+ASN_MODULE_HDRS+=BIT_STRING.h
+ASN_MODULE_SRCS+=BIT_STRING.c
+ASN_MODULE_SRCS+=asn_codecs_prim.c
+ASN_MODULE_HDRS+=asn_codecs_prim.h
+ASN_MODULE_HDRS+=ber_tlv_length.h
+ASN_MODULE_SRCS+=ber_tlv_length.c
+ASN_MODULE_HDRS+=ber_tlv_tag.h
+ASN_MODULE_SRCS+=ber_tlv_tag.c
+ASN_MODULE_HDRS+=ber_decoder.h
+ASN_MODULE_SRCS+=ber_decoder.c
+ASN_MODULE_HDRS+=der_encoder.h
+ASN_MODULE_SRCS+=der_encoder.c
+ASN_MODULE_HDRS+=constr_TYPE.h
+ASN_MODULE_SRCS+=constr_TYPE.c
+ASN_MODULE_HDRS+=constraints.h
+ASN_MODULE_SRCS+=constraints.c
+ASN_MODULE_HDRS+=xer_support.h
+ASN_MODULE_SRCS+=xer_support.c
+ASN_MODULE_HDRS+=xer_decoder.h
+ASN_MODULE_SRCS+=xer_decoder.c
+ASN_MODULE_HDRS+=xer_encoder.h
+ASN_MODULE_SRCS+=xer_encoder.c
+ASN_MODULE_HDRS+=per_support.h
+ASN_MODULE_SRCS+=per_support.c
+ASN_MODULE_HDRS+=per_decoder.h
+ASN_MODULE_SRCS+=per_decoder.c
+ASN_MODULE_HDRS+=per_encoder.h
+ASN_MODULE_SRCS+=per_encoder.c
+ASN_MODULE_HDRS+=per_opentype.h
+ASN_MODULE_SRCS+=per_opentype.c
+ASN_MODULE_HDRS+=oer_decoder.h
+ASN_MODULE_HDRS+=oer_encoder.h
+ASN_MODULE_HDRS+=oer_support.h
+ASN_MODULE_SRCS+=oer_decoder.c
+ASN_MODULE_SRCS+=oer_encoder.c
+ASN_MODULE_SRCS+=oer_support.c
+ASN_MODULE_SRCS+=OPEN_TYPE_oer.c
+ASN_MODULE_SRCS+=INTEGER_oer.c
+ASN_MODULE_SRCS+=BIT_STRING_oer.c
+ASN_MODULE_SRCS+=OCTET_STRING_oer.c
+ASN_MODULE_SRCS+=NativeInteger_oer.c
+ASN_MODULE_SRCS+=NativeEnumerated_oer.c
+ASN_MODULE_SRCS+=constr_CHOICE_oer.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_oer.c
+ASN_MODULE_SRCS+=constr_SET_OF_oer.c
+
+ASN_MODULE_CFLAGS=
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm

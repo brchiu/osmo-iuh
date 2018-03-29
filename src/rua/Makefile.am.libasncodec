@@ -1,0 +1,178 @@
+ASN_MODULE_SRCS=	\
+	RUA_RUA-PDU.c	\
+	RUA_InitiatingMessage.c	\
+	RUA_SuccessfulOutcome.c	\
+	RUA_UnsuccessfulOutcome.c	\
+	RUA_Connect.c	\
+	RUA_DirectTransfer.c	\
+	RUA_Disconnect.c	\
+	RUA_ConnectionlessTransfer.c	\
+	RUA_ErrorIndication.c	\
+	RUA_PrivateMessage.c	\
+	RUA_CN-DomainIndicator.c	\
+	RUA_CSGMembershipStatus.c	\
+	RUA_Establishment-Cause.c	\
+	RUA_Context-ID.c	\
+	RUA_IntraDomainNasNodeSelector.c	\
+	RUA_Gsm-map-IDNNS.c	\
+	RUA_Ansi-41-IDNNS.c	\
+	RUA_RANAP-Message.c	\
+	RUA_RoutingParameter.c	\
+	RUA_Cause.c	\
+	RUA_CauseRadioNetwork.c	\
+	RUA_CauseTransport.c	\
+	RUA_CauseProtocol.c	\
+	RUA_CauseMisc.c	\
+	RUA_CriticalityDiagnostics.c	\
+	RUA_CriticalityDiagnostics-IE-List.c	\
+	RUA_TypeOfError.c	\
+	RUA_Criticality.c	\
+	RUA_Presence.c	\
+	RUA_ProcedureCode.c	\
+	RUA_PrivateIE-ID.c	\
+	RUA_ProtocolIE-ID.c	\
+	RUA_TriggeringMessage.c	\
+	RUA_ProtocolIE-Container.c	\
+	RUA_ProtocolIE-Single-Container.c	\
+	RUA_ProtocolIE-Field.c	\
+	RUA_ProtocolIE-ContainerList.c	\
+	RUA_ProtocolExtensionContainer.c	\
+	RUA_ProtocolExtensionField.c	\
+	RUA_PrivateIE-Container.c	\
+	RUA_PrivateIE-Field.c
+
+ASN_MODULE_HDRS=	\
+	RUA_RUA-PDU.h	\
+	RUA_InitiatingMessage.h	\
+	RUA_SuccessfulOutcome.h	\
+	RUA_UnsuccessfulOutcome.h	\
+	RUA_Connect.h	\
+	RUA_DirectTransfer.h	\
+	RUA_Disconnect.h	\
+	RUA_ConnectionlessTransfer.h	\
+	RUA_ErrorIndication.h	\
+	RUA_PrivateMessage.h	\
+	RUA_CN-DomainIndicator.h	\
+	RUA_CSGMembershipStatus.h	\
+	RUA_Establishment-Cause.h	\
+	RUA_Context-ID.h	\
+	RUA_IntraDomainNasNodeSelector.h	\
+	RUA_Gsm-map-IDNNS.h	\
+	RUA_Ansi-41-IDNNS.h	\
+	RUA_RANAP-Message.h	\
+	RUA_RoutingParameter.h	\
+	RUA_Cause.h	\
+	RUA_CauseRadioNetwork.h	\
+	RUA_CauseTransport.h	\
+	RUA_CauseProtocol.h	\
+	RUA_CauseMisc.h	\
+	RUA_CriticalityDiagnostics.h	\
+	RUA_CriticalityDiagnostics-IE-List.h	\
+	RUA_TypeOfError.h	\
+	RUA_Criticality.h	\
+	RUA_Presence.h	\
+	RUA_ProcedureCode.h	\
+	RUA_PrivateIE-ID.h	\
+	RUA_ProtocolIE-ID.h	\
+	RUA_TriggeringMessage.h	\
+	RUA_ProtocolIE-Container.h	\
+	RUA_ProtocolIE-Single-Container.h	\
+	RUA_ProtocolIE-Field.h	\
+	RUA_ProtocolIE-ContainerList.h	\
+	RUA_ProtocolExtensionContainer.h	\
+	RUA_ProtocolExtensionField.h	\
+	RUA_PrivateIE-Container.h	\
+	RUA_PrivateIE-Field.h
+
+ASN_MODULE_HDRS+=ANY.h
+ASN_MODULE_SRCS+=ANY.c
+ASN_MODULE_HDRS+=OCTET_STRING.h
+ASN_MODULE_HDRS+=OPEN_TYPE.h
+ASN_MODULE_SRCS+=OPEN_TYPE.c
+ASN_MODULE_HDRS+=constr_CHOICE.h
+ASN_MODULE_HDRS+=BOOLEAN.h
+ASN_MODULE_SRCS+=BOOLEAN.c
+ASN_MODULE_HDRS+=INTEGER.h
+ASN_MODULE_SRCS+=INTEGER.c
+ASN_MODULE_HDRS+=NativeEnumerated.h
+ASN_MODULE_SRCS+=NativeEnumerated.c
+ASN_MODULE_HDRS+=NativeInteger.h
+ASN_MODULE_SRCS+=NativeInteger.c
+ASN_MODULE_HDRS+=OBJECT_IDENTIFIER.h
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER.c
+ASN_MODULE_HDRS+=asn_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=asn_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=asn_SET_OF.h
+ASN_MODULE_SRCS+=asn_SET_OF.c
+ASN_MODULE_SRCS+=constr_CHOICE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE.h
+ASN_MODULE_SRCS+=constr_SEQUENCE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=constr_SET_OF.h
+ASN_MODULE_SRCS+=constr_SET_OF.c
+ASN_MODULE_HDRS+=asn_application.h
+ASN_MODULE_SRCS+=asn_application.c
+ASN_MODULE_HDRS+=asn_ioc.h
+ASN_MODULE_HDRS+=asn_system.h
+ASN_MODULE_HDRS+=asn_codecs.h
+ASN_MODULE_HDRS+=asn_internal.h
+ASN_MODULE_SRCS+=asn_internal.c
+ASN_MODULE_HDRS+=asn_random_fill.h
+ASN_MODULE_SRCS+=asn_random_fill.c
+ASN_MODULE_HDRS+=asn_bit_data.h
+ASN_MODULE_SRCS+=asn_bit_data.c
+ASN_MODULE_SRCS+=OCTET_STRING.c
+ASN_MODULE_HDRS+=BIT_STRING.h
+ASN_MODULE_SRCS+=BIT_STRING.c
+ASN_MODULE_SRCS+=asn_codecs_prim.c
+ASN_MODULE_HDRS+=asn_codecs_prim.h
+ASN_MODULE_HDRS+=ber_tlv_length.h
+ASN_MODULE_SRCS+=ber_tlv_length.c
+ASN_MODULE_HDRS+=ber_tlv_tag.h
+ASN_MODULE_SRCS+=ber_tlv_tag.c
+ASN_MODULE_HDRS+=ber_decoder.h
+ASN_MODULE_SRCS+=ber_decoder.c
+ASN_MODULE_HDRS+=der_encoder.h
+ASN_MODULE_SRCS+=der_encoder.c
+ASN_MODULE_HDRS+=constr_TYPE.h
+ASN_MODULE_SRCS+=constr_TYPE.c
+ASN_MODULE_HDRS+=constraints.h
+ASN_MODULE_SRCS+=constraints.c
+ASN_MODULE_HDRS+=xer_support.h
+ASN_MODULE_SRCS+=xer_support.c
+ASN_MODULE_HDRS+=xer_decoder.h
+ASN_MODULE_SRCS+=xer_decoder.c
+ASN_MODULE_HDRS+=xer_encoder.h
+ASN_MODULE_SRCS+=xer_encoder.c
+ASN_MODULE_HDRS+=per_support.h
+ASN_MODULE_SRCS+=per_support.c
+ASN_MODULE_HDRS+=per_decoder.h
+ASN_MODULE_SRCS+=per_decoder.c
+ASN_MODULE_HDRS+=per_encoder.h
+ASN_MODULE_SRCS+=per_encoder.c
+ASN_MODULE_HDRS+=per_opentype.h
+ASN_MODULE_SRCS+=per_opentype.c
+ASN_MODULE_HDRS+=oer_decoder.h
+ASN_MODULE_HDRS+=oer_encoder.h
+ASN_MODULE_HDRS+=oer_support.h
+ASN_MODULE_SRCS+=oer_decoder.c
+ASN_MODULE_SRCS+=oer_encoder.c
+ASN_MODULE_SRCS+=oer_support.c
+ASN_MODULE_SRCS+=OPEN_TYPE_oer.c
+ASN_MODULE_SRCS+=INTEGER_oer.c
+ASN_MODULE_SRCS+=BIT_STRING_oer.c
+ASN_MODULE_SRCS+=OCTET_STRING_oer.c
+ASN_MODULE_SRCS+=NativeInteger_oer.c
+ASN_MODULE_SRCS+=NativeEnumerated_oer.c
+ASN_MODULE_SRCS+=constr_CHOICE_oer.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_oer.c
+ASN_MODULE_SRCS+=constr_SET_OF_oer.c
+
+ASN_MODULE_CFLAGS=
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm

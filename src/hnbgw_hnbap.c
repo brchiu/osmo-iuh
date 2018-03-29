@@ -33,7 +33,6 @@
 #include <osmocom/ranap/iu_helpers.h>
 
 #include <osmocom/iuh/hnbgw.h>
-#include <osmocom/hnbap/hnbap_ies_defs.h>
 
 #define IU_MSG_NUM_IES		32
 #define IU_MSG_NUM_EXT_IES	32
@@ -51,31 +50,65 @@ static int hnbgw_hnbap_tx(struct hnb_context *ctx, struct msgb *msg)
 
 static int hnbgw_tx_hnb_register_rej(struct hnb_context *ctx)
 {
-	HNBRegisterReject_t reject_out;
-	HNBRegisterRejectIEs_t reject;
+	HNBAP_PDU_t pdu;
+	HNBRegisterReject_t *out;
+	HNBRegisterRejectIEs_t *ie;
 	struct msgb *msg;
 	int rc;
 
-	reject.presenceMask = 0,
-	reject.cause.present = Cause_PR_radioNetwork;
-	reject.cause.choice.radioNetwork = CauseRadioNetwork_unspecified;
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* encode the Information Elements */
-	memset(&reject_out, 0, sizeof(reject_out));
-	rc = hnbap_encode_hnbregisterrejecties(&reject_out,  &reject);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Failure to encode HNB-REGISTER-REJECT to %s: rc=%d\n",
-		     ctx->identity_info, rc);
-		return rc;
+	pdu.present = HNBAP_PDU_PR_unsuccessfulOutcome;
+	pdu.choice.unsuccessfulOutcome.procedureCode = ProcedureCode_id_HNBRegister;
+	pdu.choice.unsuccessfulOutcome.criticality = Criticality_reject;
+	pdu.choice.unsuccessfulOutcome.value.present = UnsuccessfulOutcome__value_PR_HNBRegisterReject;
+	out = &pdu.choice.unsuccessfulOutcome.value.choice.HNBRegisterReject;
+
+	ie = (HNBRegisterRejectIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_Cause;
+	ie->criticality = Criticality_ignore;
+	ie->value.present = HNBRegisterRejectIEs__value_PR_Cause;
+	ie->value.choice.Cause.present = Cause_PR_radioNetwork;
+	ie->value.choice.Cause.choice.radioNetwork = CauseRadioNetwork_unspecified;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+
+	/* optional */
+	if (0) {
+		ie = (HNBRegisterRejectIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = ProtocolIE_ID_id_CriticalityDiagnostics;
+		ie->criticality = Criticality_ignore;
+		ie->value.present = HNBRegisterRejectIEs__value_PR_CriticalityDiagnostics;
+
+		/* TBD */
+
+		ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 	}
 
-	/* generate a successfull outcome PDU */
-	msg = hnbap_generate_unsuccessful_outcome(ProcedureCode_id_HNBRegister,
-						  Criticality_reject,
-						  &asn_DEF_HNBRegisterReject,
-						  &reject_out);
+	/* BackoffTimer ::= INTEGER(0..3600) */
 
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBRegisterReject, &reject_out);
+#if 0
+	if ((backoff_timer >= 0) && (backoff_timer <= 3600)) {
+		ie = (HNBRegisterRejectIEs_t *)CALLOC(1, sizeof(*ie));
+		ie->id = ProtocolIE_ID_id_BackoffTimer;
+		ie->criticality = Criticality_reject;
+		ie->value.present = HNBRegisterRejectIEs__value_PR_BackoffTimer;
+		ie->value.choice.BackoffTimer = backoff_timer;
+		ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
+	} else {
+
+		/* conditional : This IE shall be present if the Cause IE is set to "Overload". */
+		if (((ie_cond->value.choice.Cause.present == Cause_PR_radioNetwork) &&
+			(ie_cond->value.choice.Cause.choice.radioNetwork == CauseRadioNetwork_overload)) ||
+			((ie_cond->value.choice.Cause.present == Cause_PR_radioNetwork) &&
+			(ie_cond->value.choice.Cause.choice.radioNetwork == CauseRadioNetwork_overload))) {
+			/* TBD : raise error */
+		}
+	}
+#endif
+
+	msg = _hnbap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
 
 	rc = hnbgw_hnbap_tx(ctx, msg);
 	if (rc == 0) {
@@ -86,35 +119,34 @@ static int hnbgw_tx_hnb_register_rej(struct hnb_context *ctx)
 		/* The message was not queued. Destroy the connection right away. */
 		hnb_context_release(ctx, true);
 	}
+	return rc;
 }
 
 static int hnbgw_tx_hnb_register_acc(struct hnb_context *ctx)
 {
-	HNBRegisterAccept_t accept_out;
+	HNBAP_PDU_t pdu;
+	HNBRegisterAccept_t *out;
+	HNBRegisterResponseIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	/* Single required response IE: RNC-ID */
-	HNBRegisterAcceptIEs_t accept = {
-		.rnc_id = ctx->gw->config.rnc_id
-	};
+	memset(&pdu, 0, sizeof(pdu));
 
-	/* encode the Information Elements */
-	memset(&accept_out, 0, sizeof(accept_out));
-	rc = hnbap_encode_hnbregisteraccepties(&accept_out,  &accept);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Failure to encode HNB-REGISTER-ACCEPT to %s: rc=%d\n",
-		     ctx->identity_info, rc);
-		return rc;
-	}
+	pdu.present = HNBAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = ProcedureCode_id_HNBRegister;
+	pdu.choice.successfulOutcome.criticality = Criticality_reject;
+	pdu.choice.successfulOutcome.value.present = SuccessfulOutcome__value_PR_HNBRegisterAccept;
+	out = &pdu.choice.successfulOutcome.value.choice.HNBRegisterAccept;
 
-	/* generate a successfull outcome PDU */
-	msg = hnbap_generate_successful_outcome(ProcedureCode_id_HNBRegister,
-					       Criticality_reject,
-					       &asn_DEF_HNBRegisterAccept,
-					       &accept_out);
+	ie = (HNBRegisterResponseIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_RNC_ID;
+	ie->criticality = Criticality_reject;
+	ie->value.present = HNBRegisterResponseIEs__value_PR_RNC_ID;
+	ie->value.choice.RNC_ID = ctx->gw->config.rnc_id;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBRegisterAccept, &accept_out);
+	msg = _hnbap_gen_msg(&pdu);
+
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
 
 	return hnbgw_hnbap_tx(ctx, msg);
 }
@@ -122,220 +154,221 @@ static int hnbgw_tx_hnb_register_acc(struct hnb_context *ctx)
 
 static int hnbgw_tx_ue_register_acc(struct ue_context *ue)
 {
-	UERegisterAccept_t accept_out;
-	UERegisterAcceptIEs_t accept;
+	HNBAP_PDU_t pdu;
+	UERegisterAccept_t *out;
+	UERegisterAcceptIEs_t *ie;
 	struct msgb *msg;
 	uint8_t encoded_imsi[10];
 	uint32_t ctx_id;
 	size_t encoded_imsi_len;
-	int rc;
 
+	memset(&pdu, 0, sizeof(pdu));
+
+	pdu.present = HNBAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = ProcedureCode_id_UERegister;
+	pdu.choice.successfulOutcome.criticality = Criticality_reject;
+	pdu.choice.successfulOutcome.value.present = SuccessfulOutcome__value_PR_UERegisterAccept;
+	out = &pdu.choice.successfulOutcome.value.choice.UERegisterAccept;
+
+	ie = (UERegisterAcceptIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_UE_Identity;
+	ie->criticality = Criticality_reject;
+	ie->value.present = UERegisterAcceptIEs__value_PR_UE_Identity;
+	ie->value.choice.UE_Identity.present = UE_Identity_PR_iMSI;
 	encoded_imsi_len = ranap_imsi_encode(encoded_imsi,
 					  sizeof(encoded_imsi), ue->imsi);
-
-	memset(&accept, 0, sizeof(accept));
-	accept.uE_Identity.present = UE_Identity_PR_iMSI;
-	OCTET_STRING_fromBuf(&accept.uE_Identity.choice.iMSI,
+	OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.iMSI,
 			     (const char *)encoded_imsi, encoded_imsi_len);
-	asn1_u24_to_bitstring(&accept.context_ID, &ctx_id, ue->context_id);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	memset(&accept_out, 0, sizeof(accept_out));
-	rc = hnbap_encode_ueregisteraccepties(&accept_out, &accept);
-	if (rc < 0) {
-		return rc;
-	}
+	ie = (UERegisterAcceptIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_Context_ID;
+	ie->criticality = Criticality_reject;
+	ie->value.present = UERegisterAcceptIEs__value_PR_Context_ID;
+	asn1_u24_to_bitstring(&ie->value.choice.Context_ID, &ctx_id, ue->context_id);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	msg = hnbap_generate_successful_outcome(ProcedureCode_id_UERegister,
-						Criticality_reject,
-						&asn_DEF_UERegisterAccept,
-						&accept_out);
+	msg = _hnbap_gen_msg(&pdu);
 
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING, &accept.uE_Identity.choice.iMSI);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_UERegisterAccept, &accept_out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
 
 	return hnbgw_hnbap_tx(ue->hnb, msg);
 }
 
 static int hnbgw_tx_ue_register_rej_tmsi(struct hnb_context *hnb, UE_Identity_t *ue_id)
 {
-	UERegisterReject_t reject_out;
-	UERegisterRejectIEs_t reject;
+	HNBAP_PDU_t pdu;
+	UERegisterReject_t *out;
+	UERegisterRejectIEs_t *ie;
 	struct msgb *msg;
-	int rc;
 
-	memset(&reject, 0, sizeof(reject));
-	reject.uE_Identity.present = ue_id->present;
+	memset(&pdu, 0, sizeof(pdu));
+
+	pdu.present = HNBAP_PDU_PR_unsuccessfulOutcome;
+	pdu.choice.unsuccessfulOutcome.procedureCode = ProcedureCode_id_UERegister;
+	pdu.choice.unsuccessfulOutcome.criticality = Criticality_reject;
+	pdu.choice.unsuccessfulOutcome.value.present = UnsuccessfulOutcome__value_PR_UERegisterReject;
+	out = &pdu.choice.unsuccessfulOutcome.value.choice.UERegisterReject;
+
+	ie = (UERegisterRejectIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_UE_Identity;
+	ie->criticality = Criticality_ignore;
+	ie->value.present = UERegisterRejectIEs__value_PR_UE_Identity;
+	ie->value.choice.UE_Identity.present = ue_id->present;
 
 	/* Copy the identity over to the reject message */
 	switch (ue_id->present) {
 	case UE_Identity_PR_tMSILAI:
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id tMSI %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id tMSI %ld %s\n",
 		     ue_id->choice.tMSILAI.tMSI.size,
 		     osmo_hexdump(ue_id->choice.tMSILAI.tMSI.buf,
 				  ue_id->choice.tMSILAI.tMSI.size));
 
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pLMNID %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pLMNID %ld %s\n",
 		     ue_id->choice.tMSILAI.lAI.pLMNID.size,
 		     osmo_hexdump(ue_id->choice.tMSILAI.lAI.pLMNID.buf,
 				  ue_id->choice.tMSILAI.lAI.pLMNID.size));
 
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id lAC %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id lAC %ld %s\n",
 		     ue_id->choice.tMSILAI.lAI.lAC.size,
 		     osmo_hexdump(ue_id->choice.tMSILAI.lAI.lAC.buf,
 				  ue_id->choice.tMSILAI.lAI.lAC.size));
 
-		BIT_STRING_fromBuf(&reject.uE_Identity.choice.tMSILAI.tMSI,
+		BIT_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.tMSI,
 				   ue_id->choice.tMSILAI.tMSI.buf,
 				   ue_id->choice.tMSILAI.tMSI.size * 8
 				   - ue_id->choice.tMSILAI.tMSI.bits_unused);
-		OCTET_STRING_fromBuf(&reject.uE_Identity.choice.tMSILAI.lAI.pLMNID,
-				     ue_id->choice.tMSILAI.lAI.pLMNID.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.lAI.pLMNID,
+				     (const char *)ue_id->choice.tMSILAI.lAI.pLMNID.buf,
 				     ue_id->choice.tMSILAI.lAI.pLMNID.size);
-		OCTET_STRING_fromBuf(&reject.uE_Identity.choice.tMSILAI.lAI.lAC,
-				     ue_id->choice.tMSILAI.lAI.lAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.lAI.lAC,
+				     (const char *)ue_id->choice.tMSILAI.lAI.lAC.buf,
 				     ue_id->choice.tMSILAI.lAI.lAC.size);
 		break;
 
 	case UE_Identity_PR_pTMSIRAI:
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pTMSI %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pTMSI %ld %s\n",
 		     ue_id->choice.pTMSIRAI.pTMSI.size,
 		     osmo_hexdump(ue_id->choice.pTMSIRAI.pTMSI.buf,
 				  ue_id->choice.pTMSIRAI.pTMSI.size));
 
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pLMNID %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id pLMNID %ld %s\n",
 		     ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.size,
 		     osmo_hexdump(ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.buf,
 				  ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.size));
 
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id lAC %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id lAC %ld %s\n",
 		     ue_id->choice.pTMSIRAI.rAI.lAI.lAC.size,
 		     osmo_hexdump(ue_id->choice.pTMSIRAI.rAI.lAI.lAC.buf,
 				  ue_id->choice.pTMSIRAI.rAI.lAI.lAC.size));
 
-		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id rAC %d %s\n",
+		LOGP(DHNBAP, LOGL_DEBUG, "REJ UE_Id rAC %ld %s\n",
 		     ue_id->choice.pTMSIRAI.rAI.rAC.size,
 		     osmo_hexdump(ue_id->choice.pTMSIRAI.rAI.rAC.buf,
 				  ue_id->choice.pTMSIRAI.rAI.rAC.size));
 
-		BIT_STRING_fromBuf(&reject.uE_Identity.choice.pTMSIRAI.pTMSI,
+		BIT_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.pTMSI,
 				   ue_id->choice.pTMSIRAI.pTMSI.buf,
 				   ue_id->choice.pTMSIRAI.pTMSI.size * 8
 				   - ue_id->choice.pTMSIRAI.pTMSI.bits_unused);
-		OCTET_STRING_fromBuf(&reject.uE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID,
-				     ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.buf,
 				     ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.size);
-		OCTET_STRING_fromBuf(&reject.uE_Identity.choice.pTMSIRAI.rAI.lAI.lAC,
-				     ue_id->choice.pTMSIRAI.rAI.lAI.lAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.lAI.lAC,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.lAI.lAC.buf,
 				     ue_id->choice.pTMSIRAI.rAI.lAI.lAC.size);
-		OCTET_STRING_fromBuf(&reject.uE_Identity.choice.pTMSIRAI.rAI.rAC,
-				     ue_id->choice.pTMSIRAI.rAI.rAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.rAC,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.rAC.buf,
 				     ue_id->choice.pTMSIRAI.rAI.rAC.size);
 		break;
 
 	default:
 		LOGP(DHNBAP, LOGL_ERROR, "Cannot compose UE Register Reject:"
 		     " unsupported UE ID (present=%d)\n", ue_id->present);
+		FREEMEM(ie);
 		return -1;
 	}
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
 	LOGP(DHNBAP, LOGL_ERROR, "Rejecting UE Register Request:"
 	     " TMSI identity registration is switched off\n");
 
-	reject.cause.present = Cause_PR_radioNetwork;
-	reject.cause.choice.radioNetwork = CauseRadioNetwork_invalid_UE_identity;
+	ie = (UERegisterRejectIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_Cause;
+	ie->criticality = Criticality_ignore;
+	ie->value.present = UERegisterRejectIEs__value_PR_Cause;
+	ie->value.choice.Cause.present = Cause_PR_radioNetwork;
+	ie->value.choice.Cause.choice.radioNetwork = CauseRadioNetwork_invalid_UE_identity;
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	memset(&reject_out, 0, sizeof(reject_out));
-	rc = hnbap_encode_ueregisterrejecties(&reject_out, &reject);
-	if (rc < 0)
-		return rc;
+	msg = _hnbap_gen_msg(&pdu);
 
-	msg = hnbap_generate_unsuccessful_outcome(ProcedureCode_id_UERegister,
-						  Criticality_reject,
-						  &asn_DEF_UERegisterReject,
-						  &reject_out);
-
-	/* Free copied identity IEs */
-	switch (ue_id->present) {
-	case UE_Identity_PR_tMSILAI:
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_BIT_STRING,
-					      &reject.uE_Identity.choice.tMSILAI.tMSI);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &reject.uE_Identity.choice.tMSILAI.lAI.pLMNID);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &reject.uE_Identity.choice.tMSILAI.lAI.lAC);
-		break;
-
-	case UE_Identity_PR_pTMSIRAI:
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_BIT_STRING,
-					      &reject.uE_Identity.choice.pTMSIRAI.pTMSI);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &reject.uE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &reject.uE_Identity.choice.pTMSIRAI.rAI.lAI.lAC);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &reject.uE_Identity.choice.pTMSIRAI.rAI.rAC);
-		break;
-
-	default:
-		/* should never happen after above switch() */
-		break;
-	}
-
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_UERegisterReject, &reject_out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
 
 	return hnbgw_hnbap_tx(hnb, msg);
 }
 
 static int hnbgw_tx_ue_register_acc_tmsi(struct hnb_context *hnb, UE_Identity_t *ue_id)
 {
-	UERegisterAccept_t accept_out;
-	UERegisterAcceptIEs_t accept;
+	HNBAP_PDU_t pdu;
+	UERegisterAccept_t *out;
+	UERegisterAcceptIEs_t *ie;
 	struct msgb *msg;
 	uint32_t ctx_id;
 	uint32_t tmsi = 0;
 	struct ue_context *ue;
-	int rc;
 
-	memset(&accept, 0, sizeof(accept));
-	accept.uE_Identity.present = ue_id->present;
+	pdu.present = HNBAP_PDU_PR_successfulOutcome;
+	pdu.choice.successfulOutcome.procedureCode = ProcedureCode_id_UERegister;
+	pdu.choice.successfulOutcome.criticality = Criticality_reject;
+	pdu.choice.successfulOutcome.value.present = SuccessfulOutcome__value_PR_UERegisterAccept;
+	out = &pdu.choice.successfulOutcome.value.choice.UERegisterAccept;
+
+	ie = (UERegisterAcceptIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_UE_Identity;
+	ie->criticality = Criticality_reject;
+	ie->value.present = UERegisterAcceptIEs__value_PR_UE_Identity;
+	ie->value.choice.UE_Identity.present = ue_id->present;
 
 	switch (ue_id->present) {
 	case UE_Identity_PR_tMSILAI:
-		BIT_STRING_fromBuf(&accept.uE_Identity.choice.tMSILAI.tMSI,
+		BIT_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.tMSI,
 				   ue_id->choice.tMSILAI.tMSI.buf,
 				   ue_id->choice.tMSILAI.tMSI.size * 8
 				   - ue_id->choice.tMSILAI.tMSI.bits_unused);
-		tmsi = *(uint32_t*)accept.uE_Identity.choice.tMSILAI.tMSI.buf;
-		OCTET_STRING_fromBuf(&accept.uE_Identity.choice.tMSILAI.lAI.pLMNID,
-				     ue_id->choice.tMSILAI.lAI.pLMNID.buf,
+		tmsi = *(uint32_t*)ie->value.choice.UE_Identity.choice.tMSILAI.tMSI.buf;
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.lAI.pLMNID,
+				     (const char *)ue_id->choice.tMSILAI.lAI.pLMNID.buf,
 				     ue_id->choice.tMSILAI.lAI.pLMNID.size);
-		OCTET_STRING_fromBuf(&accept.uE_Identity.choice.tMSILAI.lAI.lAC,
-				     ue_id->choice.tMSILAI.lAI.lAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.tMSILAI.lAI.lAC,
+				     (const char *)ue_id->choice.tMSILAI.lAI.lAC.buf,
 				     ue_id->choice.tMSILAI.lAI.lAC.size);
 		break;
 
 	case UE_Identity_PR_pTMSIRAI:
-		BIT_STRING_fromBuf(&accept.uE_Identity.choice.pTMSIRAI.pTMSI,
+		BIT_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.pTMSI,
 				   ue_id->choice.pTMSIRAI.pTMSI.buf,
 				   ue_id->choice.pTMSIRAI.pTMSI.size * 8
 				   - ue_id->choice.pTMSIRAI.pTMSI.bits_unused);
-		tmsi = *(uint32_t*)accept.uE_Identity.choice.pTMSIRAI.pTMSI.buf;
-		OCTET_STRING_fromBuf(&accept.uE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID,
-				     ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.buf,
+		tmsi = *(uint32_t*)ie->value.choice.UE_Identity.choice.pTMSIRAI.pTMSI.buf;
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.buf,
 				     ue_id->choice.pTMSIRAI.rAI.lAI.pLMNID.size);
-		OCTET_STRING_fromBuf(&accept.uE_Identity.choice.pTMSIRAI.rAI.lAI.lAC,
-				     ue_id->choice.pTMSIRAI.rAI.lAI.lAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.lAI.lAC,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.lAI.lAC.buf,
 				     ue_id->choice.pTMSIRAI.rAI.lAI.lAC.size);
-		OCTET_STRING_fromBuf(&accept.uE_Identity.choice.pTMSIRAI.rAI.rAC,
-				     ue_id->choice.pTMSIRAI.rAI.rAC.buf,
+		OCTET_STRING_fromBuf(&ie->value.choice.UE_Identity.choice.pTMSIRAI.rAI.rAC,
+				     (const char *)ue_id->choice.pTMSIRAI.rAI.rAC.buf,
 				     ue_id->choice.pTMSIRAI.rAI.rAC.size);
 		break;
 
 	default:
 		LOGP(DHNBAP, LOGL_ERROR, "Unsupportedccept UE ID (present=%d)\n",
 			ue_id->present);
+		FREEMEM(ie);
 		return -1;
 	}
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
 	tmsi = ntohl(tmsi);
 	LOGP(DHNBAP, LOGL_DEBUG, "HNBAP register with TMSI %x\n",
@@ -345,88 +378,59 @@ static int hnbgw_tx_ue_register_acc_tmsi(struct hnb_context *hnb, UE_Identity_t 
 	if (!ue)
 		ue = ue_context_alloc(hnb, NULL, tmsi);
 
-	asn1_u24_to_bitstring(&accept.context_ID, &ctx_id, ue->context_id);
+	ie = (UERegisterAcceptIEs_t *)CALLOC(1, sizeof(*ie));
+	ie->id = ProtocolIE_ID_id_Context_ID;
+	ie->criticality = Criticality_reject;
+	ie->value.present = UERegisterAcceptIEs__value_PR_Context_ID;
+	asn1_u24_to_bitstring(&ie->value.choice.Context_ID, &ctx_id, ue->context_id);
+	ASN_SEQUENCE_ADD(&out->protocolIEs.list, ie);
 
-	memset(&accept_out, 0, sizeof(accept_out));
-	rc = hnbap_encode_ueregisteraccepties(&accept_out, &accept);
-	if (rc < 0)
-		return rc;
+	msg = _hnbap_gen_msg(&pdu);
 
-	msg = hnbap_generate_successful_outcome(ProcedureCode_id_UERegister,
-						Criticality_reject,
-						&asn_DEF_UERegisterAccept,
-						&accept_out);
-
-	switch (ue_id->present) {
-	case UE_Identity_PR_tMSILAI:
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_BIT_STRING,
-					      &accept.uE_Identity.choice.tMSILAI.tMSI);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &accept.uE_Identity.choice.tMSILAI.lAI.pLMNID);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &accept.uE_Identity.choice.tMSILAI.lAI.lAC);
-		break;
-
-	case UE_Identity_PR_pTMSIRAI:
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_BIT_STRING,
-					      &accept.uE_Identity.choice.pTMSIRAI.pTMSI);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &accept.uE_Identity.choice.pTMSIRAI.rAI.lAI.pLMNID);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &accept.uE_Identity.choice.pTMSIRAI.rAI.lAI.lAC);
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_OCTET_STRING,
-					      &accept.uE_Identity.choice.pTMSIRAI.rAI.rAC);
-		break;
-
-	default:
-		/* should never happen after above switch() */
-		break;
-	}
-
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_UERegisterAccept, &accept_out);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_HNBAP_PDU, &pdu);
 
 	return hnbgw_hnbap_tx(hnb, msg);
 }
 
-static int hnbgw_rx_hnb_deregister(struct hnb_context *ctx, ANY_t *in)
+static int hnbgw_rx_hnb_deregister(struct hnb_context *ctx, HNBDe_Register_t *in)
 {
-	HNBDe_RegisterIEs_t ies;
-	int rc;
+	HNBDe_RegisterIEs_t *ie;
 
-	rc = hnbap_decode_hnbde_registeries(&ies, in);
-	if (rc < 0)
-		return rc;
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBDe_RegisterIEs_t, ie, in, ProtocolIE_ID_id_Cause, true);
 
 	DEBUGP(DHNBAP, "HNB-DE-REGISTER cause=%s\n",
-		hnbap_cause_str(&ies.cause));
+		hnbap_cause_str(&ie->value.choice.Cause));
 
-	hnbap_free_hnbde_registeries(&ies);
 	hnb_context_release(ctx, true);
 
 	return 0;
 }
 
-static int hnbgw_rx_hnb_register_req(struct hnb_context *ctx, ANY_t *in)
+static int hnbgw_rx_hnb_register_req(struct hnb_context *ctx, HNBRegisterRequest_t *in)
 {
 	struct hnb_context *hnb;
-	HNBRegisterRequestIEs_t ies;
-	int rc;
+	HNBRegisterRequestIEs_t *ie;
 
-	rc = hnbap_decode_hnbregisterrequesties(&ies, in);
-	if (rc < 0) {
-		LOGP(DHNBAP, LOGL_ERROR, "Failure to decode HNB-REGISTER-REQ from %s: rc=%d\n",
-		     ctx->identity_info, rc);
-		return rc;
-	}
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_HNB_Identity, true);
 
 	/* copy all identity parameters from the message to ctx */
-	asn1_strncpy(ctx->identity_info, &ies.hnB_Identity.hNB_Identity_Info,
+	asn1_strncpy(ctx->identity_info, &ie->value.choice.HNB_Identity.hNB_Identity_Info,
 			sizeof(ctx->identity_info));
-	ctx->id.lac = asn1str_to_u16(&ies.lac);
-	ctx->id.sac = asn1str_to_u16(&ies.sac);
-	ctx->id.rac = asn1str_to_u8(&ies.rac);
-	ctx->id.cid = asn1bitstr_to_u28(&ies.cellIdentity);
-	gsm48_mcc_mnc_from_bcd(ies.plmNidentity.buf, &ctx->id.mcc, &ctx->id.mnc);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_LAC, true);
+	ctx->id.lac = asn1str_to_u16(&ie->value.choice.LAC);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_SAC, true);
+	ctx->id.sac = asn1str_to_u16(&ie->value.choice.SAC);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_RAC, true);
+	ctx->id.rac = asn1str_to_u8(&ie->value.choice.RAC);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_CellIdentity, true);
+	ctx->id.cid = asn1bitstr_to_u28(&ie->value.choice.CellIdentity);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(HNBRegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_PLMNidentity, true);
+	gsm48_mcc_mnc_from_bcd(ie->value.choice.PLMNidentity.buf, &ctx->id.mcc, &ctx->id.mnc);
 
 	llist_for_each_entry(hnb, &ctx->gw->hnb_list, list) {
 		if (hnb->hnb_registered && ctx != hnb && memcmp(&ctx->id, &hnb->id, sizeof(ctx->id)) == 0) {
@@ -445,101 +449,95 @@ static int hnbgw_rx_hnb_register_req(struct hnb_context *ctx, ANY_t *in)
 	DEBUGP(DHNBAP, "HNB-REGISTER-REQ from %s\n", ctx->identity_info);
 
 	/* Send HNBRegisterAccept */
-	rc = hnbgw_tx_hnb_register_acc(ctx);
-	hnbap_free_hnbregisterrequesties(&ies);
-	return rc;
+	return hnbgw_tx_hnb_register_acc(ctx);
 }
 
-static int hnbgw_rx_ue_register_req(struct hnb_context *ctx, ANY_t *in)
+static int hnbgw_rx_ue_register_req(struct hnb_context *ctx, UERegisterRequest_t *in)
 {
-	UERegisterRequestIEs_t ies;
+	UERegisterRequestIEs_t *ie, *ie_cause;
 	struct ue_context *ue;
 	char imsi[16];
-	int rc;
 
-	rc = hnbap_decode_ueregisterrequesties(&ies, in);
-	if (rc < 0)
-		return rc;
+	HNBAP_FIND_PROTOCOLIE_BY_ID(UERegisterRequestIEs_t, ie, in, ProtocolIE_ID_id_CellIdentity, true);
 
-	switch (ies.uE_Identity.present) {
+	switch (ie->value.choice.UE_Identity.present) {
 	case UE_Identity_PR_iMSI:
-		ranap_bcd_decode(imsi, sizeof(imsi), ies.uE_Identity.choice.iMSI.buf,
-			      ies.uE_Identity.choice.iMSI.size);
+		ranap_bcd_decode(imsi, sizeof(imsi), ie->value.choice.UE_Identity.choice.iMSI.buf,
+			      ie->value.choice.UE_Identity.choice.iMSI.size);
 		break;
 	case UE_Identity_PR_iMSIDS41:
-		ranap_bcd_decode(imsi, sizeof(imsi), ies.uE_Identity.choice.iMSIDS41.buf,
-			      ies.uE_Identity.choice.iMSIDS41.size);
+		ranap_bcd_decode(imsi, sizeof(imsi), ie->value.choice.UE_Identity.choice.iMSIDS41.buf,
+			      ie->value.choice.UE_Identity.choice.iMSIDS41.size);
 		break;
 	case UE_Identity_PR_iMSIESN:
-		ranap_bcd_decode(imsi, sizeof(imsi), ies.uE_Identity.choice.iMSIESN.iMSIDS41.buf,
-			      ies.uE_Identity.choice.iMSIESN.iMSIDS41.size);
+		ranap_bcd_decode(imsi, sizeof(imsi), ie->value.choice.UE_Identity.choice.iMSIESN.iMSIDS41.buf,
+			      ie->value.choice.UE_Identity.choice.iMSIESN.iMSIDS41.size);
 		break;
 	case UE_Identity_PR_tMSILAI:
 	case UE_Identity_PR_pTMSIRAI:
-		if (ctx->gw->config.hnbap_allow_tmsi)
-			rc = hnbgw_tx_ue_register_acc_tmsi(ctx, &ies.uE_Identity);
-		else
-			rc = hnbgw_tx_ue_register_rej_tmsi(ctx, &ies.uE_Identity);
+		if (ctx->gw->config.hnbap_allow_tmsi) {
+			HNBAP_FIND_PROTOCOLIE_BY_ID(UERegisterRequestIEs_t, ie_cause, in, ProtocolIE_ID_id_Registration_Cause, true);
+
+			DEBUGP(DHNBAP, "UE-REGISTER-REQ ID_type=%d cause=%ld\n",
+				ie->value.choice.UE_Identity.present, ie_cause->value.choice.Registration_Cause);
+
+			return hnbgw_tx_ue_register_acc_tmsi(ctx, &ie->value.choice.UE_Identity);
+		} else {
+			return hnbgw_tx_ue_register_rej_tmsi(ctx, &ie->value.choice.UE_Identity);
+		}
 		/* all has been handled by TMSI, skip the IMSI code below */
-		hnbap_free_ueregisterrequesties(&ies);
-		return rc;
+		break;
 	default:
 		LOGP(DHNBAP, LOGL_NOTICE,
 		     "UE-REGISTER-REQ with unsupported UE Id type %d\n",
-		     ies.uE_Identity.present);
-		hnbap_free_ueregisterrequesties(&ies);
-		return rc;
+		     ie->value.choice.UE_Identity.present);
+		return -1;
 	}
 
+	HNBAP_FIND_PROTOCOLIE_BY_ID(UERegisterRequestIEs_t, ie_cause, in, ProtocolIE_ID_id_Registration_Cause, true);
+
 	DEBUGP(DHNBAP, "UE-REGISTER-REQ ID_type=%d imsi=%s cause=%ld\n",
-		ies.uE_Identity.present, imsi, ies.registration_Cause);
+		ie->value.choice.UE_Identity.present, imsi, ie_cause->value.choice.Registration_Cause);
 
 	ue = ue_context_by_imsi(ctx->gw, imsi);
 	if (!ue)
 		ue = ue_context_alloc(ctx, imsi, 0);
 
-	hnbap_free_ueregisterrequesties(&ies);
 	/* Send UERegisterAccept */
 	return hnbgw_tx_ue_register_acc(ue);
 }
 
-static int hnbgw_rx_ue_deregister(struct hnb_context *ctx, ANY_t *in)
+static int hnbgw_rx_ue_deregister(struct hnb_context *ctx, UEDe_Register_t *in)
 {
-	UEDe_RegisterIEs_t ies;
+	UEDe_RegisterIEs_t *ie, *ie_cause;
 	struct ue_context *ue;
-	int rc;
 	uint32_t ctxid;
 
-	rc = hnbap_decode_uede_registeries(&ies, in);
-	if (rc < 0)
-		return rc;
+	HNBAP_FIND_PROTOCOLIE_BY_ID(UEDe_RegisterIEs_t, ie, in, ProtocolIE_ID_id_Context_ID, true);
 
-	ctxid = asn1bitstr_to_u24(&ies.context_ID);
+	ctxid = asn1bitstr_to_u24(&ie->value.choice.Context_ID);
+
+	HNBAP_FIND_PROTOCOLIE_BY_ID(UEDe_RegisterIEs_t, ie_cause, in, ProtocolIE_ID_id_Cause, true);
 
 	DEBUGP(DHNBAP, "UE-DE-REGISTER context=%u cause=%s\n",
-		ctxid, hnbap_cause_str(&ies.cause));
+		ctxid, hnbap_cause_str(&ie_cause->value.choice.Cause));
 
 	ue = ue_context_by_id(ctx->gw, ctxid);
 	if (ue)
 		ue_context_free(ue);
 
-	hnbap_free_uede_registeries(&ies);
 	return 0;
 }
 
-static int hnbgw_rx_err_ind(struct hnb_context *hnb, ANY_t *in)
+static int hnbgw_rx_err_ind(struct hnb_context *hnb, ErrorIndication_t *in)
 {
-	ErrorIndicationIEs_t ies;
-	int rc;
+	ErrorIndicationIEs_t *ie;
 
-	rc = hnbap_decode_errorindicationies(&ies, in);
-	if (rc < 0)
-		return rc;
+	HNBAP_FIND_PROTOCOLIE_BY_ID(ErrorIndicationIEs_t, ie, in, ProtocolIE_ID_id_Cause, true);
 
 	LOGP(DHNBAP, LOGL_NOTICE, "HNBAP ERROR.ind, cause: %s\n",
-		hnbap_cause_str(&ies.cause));
+		hnbap_cause_str(&ie->value.choice.Cause));
 
-	hnbap_free_errorindicationies(&ies);
 	return 0;
 }
 
@@ -549,19 +547,19 @@ static int hnbgw_rx_initiating_msg(struct hnb_context *hnb, InitiatingMessage_t 
 
 	switch (imsg->procedureCode) {
 	case ProcedureCode_id_HNBRegister:	/* 8.2 */
-		rc = hnbgw_rx_hnb_register_req(hnb, &imsg->value);
+		rc = hnbgw_rx_hnb_register_req(hnb, &imsg->value.choice.HNBRegisterRequest);
 		break;
 	case ProcedureCode_id_HNBDe_Register:	/* 8.3 */
-		rc = hnbgw_rx_hnb_deregister(hnb, &imsg->value);
+		rc = hnbgw_rx_hnb_deregister(hnb, &imsg->value.choice.HNBDe_Register);
 		break;
 	case ProcedureCode_id_UERegister: 	/* 8.4 */
-		rc = hnbgw_rx_ue_register_req(hnb, &imsg->value);
+		rc = hnbgw_rx_ue_register_req(hnb, &imsg->value.choice.UERegisterRequest);
 		break;
 	case ProcedureCode_id_UEDe_Register:	/* 8.5 */
-		rc = hnbgw_rx_ue_deregister(hnb, &imsg->value);
+		rc = hnbgw_rx_ue_deregister(hnb, &imsg->value.choice.UEDe_Register);
 		break;
 	case ProcedureCode_id_ErrorIndication:	/* 8.6 */
-		rc = hnbgw_rx_err_ind(hnb, &imsg->value);
+		rc = hnbgw_rx_err_ind(hnb, &imsg->value.choice.ErrorIndication);
 		break;
 	case ProcedureCode_id_TNLUpdate:	/* 8.9 */
 	case ProcedureCode_id_HNBConfigTransfer:	/* 8.10 */

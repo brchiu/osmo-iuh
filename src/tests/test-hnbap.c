@@ -23,7 +23,7 @@
 #include "asn1helpers.h"
 
 #include <osmocom/hnbap/hnbap_common.h>
-#include <osmocom/hnbap/hnbap_ies_defs.h>
+//#include <osmocom/hnbap/hnbap_ies_defs.h>
 #include "test_common.h"
 
 #include <assert.h>
